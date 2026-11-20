@@ -134,22 +134,24 @@ class MainActivity : ComponentActivity() {
                 // Handle external update command sent from the separate standalone updater file (bousalat://update?driveUrl=...)
                 val dataUri = curIntent.data
                 if (dataUri != null && dataUri.scheme == "bousalat" && dataUri.host == "update") {
-                    val driveUrlParam = dataUri.getQueryParameter("driveUrl")
+                    val driveUrlParam = (dataUri.getQueryParameter("driveUrl")
                         ?: dataUri.getQueryParameter("url")
-                        ?: ""
+                        ?: "").trim()
                     val versionParam = dataUri.getQueryParameter("version") ?: ""
                     val notesParam = dataUri.getQueryParameter("notes") ?: ""
 
-                    if (versionParam.isNotBlank()) {
-                        vm.updateDriveTargetVersion(versionParam)
-                    }
-                    if (notesParam.isNotBlank()) {
-                        vm.updateDriveReleaseNotes(notesParam)
-                    }
-                    if (driveUrlParam.isNotBlank()) {
+                    if (driveUrlParam.isNotBlank() && GoogleDriveUpdateManager.isTrustedUpdateUrl(driveUrlParam)) {
+                        if (versionParam.isNotBlank()) {
+                            vm.updateDriveTargetVersion(versionParam)
+                        }
+                        if (notesParam.isNotBlank()) {
+                            vm.updateDriveReleaseNotes(notesParam)
+                        }
                         vm.updateDriveUrl(driveUrlParam)
+                        vm.setDriveUpdateDialogOpen(true)
+                    } else if (driveUrlParam.isNotBlank()) {
+                        vm.showToast("⚠️ تم رفض رابط التحديث لأنه لا ينتمي إلى نطاق كوكل درايف الآمن (HTTPS)")
                     }
-                    vm.setDriveUpdateDialogOpen(true)
                     curIntent.data = null
                 }
             }
@@ -1046,7 +1048,11 @@ private fun triggerAndroidHtmlPrint(
     isLandscape: Boolean = true
 ) {
     try {
-        val webView = WebView(context)
+        val webView = WebView(context).apply {
+            settings.javaScriptEnabled = false
+            settings.allowFileAccess = false
+            settings.allowContentAccess = false
+        }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String?) {
                 val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager

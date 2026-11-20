@@ -377,6 +377,13 @@ class WaadRepository(
             dao.deleteGradesByPrefix("${id}_")
             dao.deleteAttendanceByPrefix("${id}_")
         }
+        if (studentIds.isNotEmpty()) {
+            val idSet = studentIds.toSet()
+            val cleanedHw = loadMissingHomework().filterKeys { key ->
+                key.substringBefore("_") !in idSet
+            }
+            saveMissingHomework(cleanedHw)
+        }
     }
 
     suspend fun deleteStudentsByStage(deptName: String, stageName: String, studentIds: List<String>) {
@@ -384,6 +391,13 @@ class WaadRepository(
         for (id in studentIds) {
             dao.deleteGradesByPrefix("${id}_")
             dao.deleteAttendanceByPrefix("${id}_")
+        }
+        if (studentIds.isNotEmpty()) {
+            val idSet = studentIds.toSet()
+            val cleanedHw = loadMissingHomework().filterKeys { key ->
+                key.substringBefore("_") !in idSet
+            }
+            saveMissingHomework(cleanedHw)
         }
     }
 

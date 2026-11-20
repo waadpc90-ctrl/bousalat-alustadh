@@ -1284,26 +1284,59 @@
             teacherSchedule: {}
         };
 
+        // Safe Plain-Object Map Sanitizer (Prevents Prototype Pollution & Invalid Keys on Backup Restore)
+        function sanitizePlainRecordMap(obj) {
+            const clean = Object.create(null);
+            if (!obj || typeof obj !== "object" || Array.isArray(obj)) return {};
+            const blocked = new Set(["__proto__", "constructor", "prototype"]);
+            for (const k of Object.keys(obj)) {
+                if (blocked.has(k)) continue;
+                clean[k] = obj[k];
+            }
+            return Object.assign({}, clean);
+        }
+
+        function sanitizeStudentId(rawId, fallbackIdx = 0) {
+            const cleaned = String(rawId || "").replace(/[^a-zA-Z0-9_-]/g, "_");
+            return cleaned.length >= 2 ? cleaned : `std_${Date.now()}_${fallbackIdx}`;
+        }
+
         // Normalize cross-platform Backup JSON (Android <-> iPhone bidirectional compatibility)
         function normalizeParsedDatabase(parsed) {
             if (!parsed || typeof parsed !== "object") return;
+            const idRemap = {};
             if (Array.isArray(parsed.students)) {
-                parsed.students = parsed.students.map(s => {
-                    const deptVal = (s.dept || s.deptName || "").trim();
-                    const stageVal = (s.stage || s.stageName || "").trim();
-                    return {
-                        ...s,
-                        dept: deptVal,
-                        stage: stageVal,
-                        deptName: deptVal,
-                        stageName: stageVal,
-                        section: (s.section || "أ").trim(),
-                        phone: (s.phone || "").trim()
-                    };
-                });
+                parsed.students = parsed.students
+                    .filter(s => s && typeof s === "object")
+                    .map((s, idx) => {
+                        const oldId = String(s.id || "");
+                        const safeId = sanitizeStudentId(oldId, idx);
+                        if (oldId && oldId !== safeId) idRemap[oldId] = safeId;
+                        const deptVal = String(s.dept || s.deptName || "").trim();
+                        const stageVal = String(s.stage || s.stageName || "").trim();
+                        return {
+                            ...s,
+                            id: safeId,
+                            name: String(s.name || "").trim(),
+                            dept: deptVal,
+                            stage: stageVal,
+                            deptName: deptVal,
+                            stageName: stageVal,
+                            section: String(s.section || "أ").trim(),
+                            phone: String(s.phone || "").trim()
+                        };
+                    });
             }
+            parsed.grades = sanitizePlainRecordMap(parsed.grades);
+            parsed.attendance = sanitizePlainRecordMap(parsed.attendance);
+            parsed.studentTags = sanitizePlainRecordMap(parsed.studentTags);
+            parsed.studentDatedNotes = sanitizePlainRecordMap(parsed.studentDatedNotes);
+            parsed.missingHomework = sanitizePlainRecordMap(parsed.missingHomework);
+            parsed.sectionNotes = sanitizePlainRecordMap(parsed.sectionNotes);
+            parsed.teacherSchedule = sanitizePlainRecordMap(parsed.teacherSchedule);
+
             if (parsed.grades && typeof parsed.grades === "object") {
-                for (const k in parsed.grades) {
+                for (const k of Object.keys(parsed.grades)) {
                     const g = parsed.grades[k];
                     if (g && typeof g === "object") {
                         const fnl = g.final !== undefined && g.final !== "" ? g.final : (g.finalExam !== undefined ? g.finalExam : "");
@@ -1587,7 +1620,16 @@
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;");
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function escapeCsvCell(val) {
+            let s = String(val == null ? "" : val).replace(/"/g, '""');
+            if (/^[=+\-@\t\r]/.test(s)) {
+                s = "'" + s;
+            }
+            return `"${s}"`;
         }
         // ============================================================
         // PART 3: HEADER, BOTTOM NAV, SCOPE BANNER, DASHBOARD, LIST & ENTRY
@@ -5055,7 +5097,7 @@
                 const effSaei = Math.min(maxG, res.saei + res.qarar);
                 const finalScore = res.secondRoundResult !== null ? res.secondRoundResult : (res.hasFinalResult ? res.finalResult : effSaei);
                 const status = res.hasSaei ? (finalScore >= failThr ? "ناجح" : "راسب") : "-";
-                csv += `${idx + 1},"${std.name}","${std.section}",${res.hasM1 ? res.m1 : ""},${res.hasM2 ? res.m2 : ""},${res.hasAvg1 ? res.avg1 : ""},${res.hasMid ? res.mid : ""},${res.hasM3 ? res.m3 : ""},${res.hasM4 ? res.m4 : ""},${res.hasAvg2 ? res.avg2 : ""},${res.hasSaei ? effSaei : ""},${res.hasFinal ? res.finalExam : ""},${res.qarar || ""},${res.hasSecondRound ? res.secondRoundExam : ""},"${status}"\n`;
+                csv += `${idx + 1},${escapeCsvCell(std.name)},${escapeCsvCell(std.section)},${res.hasM1 ? res.m1 : ""},${res.hasM2 ? res.m2 : ""},${res.hasAvg1 ? res.avg1 : ""},${res.hasMid ? res.mid : ""},${res.hasM3 ? res.m3 : ""},${res.hasM4 ? res.m4 : ""},${res.hasAvg2 ? res.avg2 : ""},${res.hasSaei ? effSaei : ""},${res.hasFinal ? res.finalExam : ""},${res.qarar || ""},${res.hasSecondRound ? res.secondRoundExam : ""},${escapeCsvCell(status)}\n`;
             });
             const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
@@ -5628,7 +5670,7 @@
         async function forceRefreshOfflineCache(showNotification = false) {
             if (!("caches" in window)) return;
             try {
-                const cache = await caches.open("bousalat-alustadh-v4.4-offline-v3");
+                const cache = await caches.open("bousalat-alustadh-v4.4-offline-v4");
                 // 1. Self-cache current running document under all possible entry URLs so offline launch never misses
                 const fullHtml = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
                 const htmlHeaders = { "Content-Type": "text/html; charset=utf-8" };

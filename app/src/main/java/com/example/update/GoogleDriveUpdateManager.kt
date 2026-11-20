@@ -368,6 +368,28 @@ object GoogleDriveUpdateManager {
     }
 
     /**
+     * Ensures update download URLs strictly use HTTPS and belong to trusted Google Drive hosts.
+     */
+    fun isTrustedUpdateUrl(rawUrl: String): Boolean {
+        val clean = rawUrl.trim()
+        if (clean.isEmpty()) return false
+        if (extractDriveFileId(clean) != null && !clean.contains("://")) return true
+        return try {
+            val uri = Uri.parse(clean)
+            val scheme = uri.scheme?.lowercase() ?: ""
+            val host = uri.host?.lowercase() ?: ""
+            scheme == "https" && (
+                host == "drive.google.com" ||
+                host == "drive.usercontent.google.com" ||
+                host.endsWith(".googleusercontent.com") ||
+                host == "docs.google.com"
+            )
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /**
      * Converts a Google Drive share link into a direct binary download link that bypasses
      * the virus scan warning page (`confirm=t`) on `drive.usercontent.google.com`.
      */
@@ -377,10 +399,10 @@ object GoogleDriveUpdateManager {
         val fileId = extractDriveFileId(clean)
         return if (fileId != null) {
             "https://drive.usercontent.google.com/download?id=$fileId&export=download&confirm=t"
-        } else if (clean.startsWith("http://") || clean.startsWith("https://")) {
+        } else if (isTrustedUpdateUrl(clean)) {
             clean
         } else {
-            "https://$clean"
+            ""
         }
     }
 
@@ -402,10 +424,10 @@ object GoogleDriveUpdateManager {
         val fileId = extractDriveFileId(clean)
         return if (fileId != null) {
             "https://drive.google.com/file/d/$fileId/view?usp=sharing"
-        } else if (clean.startsWith("http://") || clean.startsWith("https://")) {
+        } else if (isTrustedUpdateUrl(clean)) {
             clean
         } else {
-            "https://$clean"
+            ""
         }
     }
 

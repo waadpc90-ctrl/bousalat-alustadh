@@ -2239,12 +2239,14 @@ class WaadViewModel(
 
             val updatedSettings = state.settings.copy(structure = struct)
             repository.saveSettings(updatedSettings)
+            val refreshedHw = repository.loadMissingHomework()
             _uiState.update {
                 it.copy(
                     settings = updatedSettings,
                     selDeptIdx = nextDeptIdx,
                     selStageIdx = nextStageIdx,
                     globalSub = nextGlobalSub,
+                    missingHomework = refreshedHw,
                     deleteModal = null
                 )
             }
@@ -2328,6 +2330,23 @@ class WaadViewModel(
         }
     }
 
+    private fun escapeHtml(raw: String): String {
+        return raw
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;")
+    }
+
+    private fun escapeCsvCell(raw: String): String {
+        var s = raw.replace("\"", "\"\"")
+        if (s.isNotEmpty() && (s[0] == '=' || s[0] == '+' || s[0] == '-' || s[0] == '@' || s[0] == '\t' || s[0] == '\r')) {
+            s = "'$s"
+        }
+        return "\"$s\""
+    }
+
     fun buildExcelCsvContent(): String? {
         val state = _uiState.value
         val sub = state.globalSub.ifBlank { state.currentStage.subjects.firstOrNull() ?: "" }
@@ -2346,8 +2365,8 @@ class WaadViewModel(
             val status = if (r.hasSaei) (if (finalScore >= state.failThreshold) "ناجح" else "راسب") else "غير مرصود"
             listOf(
                 (idx + 1).toString(),
-                "\"${s.name}\"",
-                "\"${s.section}\"",
+                escapeCsvCell(s.name),
+                escapeCsvCell(s.section),
                 if (r.hasM1) r.m1.toString() else "-",
                 if (r.hasM2) r.m2.toString() else "-",
                 if (r.hasAvg1) r.avg1.toString() else "-",
@@ -2359,7 +2378,7 @@ class WaadViewModel(
                 if (r.hasFinal) r.finalExam.toString() else "-",
                 if (r.hasSecondRound) r.secondRoundExam.toString() else "-",
                 r.qarar.toString(),
-                status
+                escapeCsvCell(status)
             ).joinToString(",")
         }
         return "\uFEFF" + (listOf(headers.joinToString(",")) + rows).joinToString("\n")
@@ -2377,6 +2396,7 @@ class WaadViewModel(
     ): String {
         val state = _uiState.value
         val sub = state.globalSub.ifBlank { state.currentStage.subjects.firstOrNull() ?: "---" }
+        val safeSub = escapeHtml(sub)
         val baseFiltered = getFilteredStudentsList(state)
         val maxGrade = state.maxAllowedGrade
         val failThresh = state.failThreshold
@@ -2447,8 +2467,8 @@ class WaadViewModel(
                     """
                     <tr>
                         <td>${idx + 1}</td>
-                        <td style="text-align:right;padding-right:8px;">${s.name}</td>
-                        <td>${s.section}</td>
+                        <td style="text-align:right;padding-right:8px;">${escapeHtml(s.name)}</td>
+                        <td>${escapeHtml(s.section)}</td>
                         <td>${vDaily ?: "-"}</td>
                         <td>${vPractical ?: "-"}</td>
                         <td>${vWritten ?: "-"}</td>
@@ -2523,15 +2543,15 @@ class WaadViewModel(
                     """
                     <tr>
                         <td>${idx + 1}</td>
-                        <td style="text-align:right;padding-right:8px;">${s.name}${if (isIntisabEffective) " (انتساب)" else ""}</td>
-                        <td>${s.section}</td>
+                        <td style="text-align:right;padding-right:8px;">${escapeHtml(s.name)}${if (isIntisabEffective) " (انتساب)" else ""}</td>
+                        <td>${escapeHtml(s.section)}</td>
                         <td>$todayLabel</td>
                         <td>${if (isIntisabEffective && presCount == 0) "-" else presCount.toString()}</td>
                         <td style="color:${if (colorTheme && absCount > 0) "#dc2626" else "#000"};">${if (isIntisabEffective) "معفي" else absCount.toString()}</td>
                         <td>${if (isIntisabEffective && excCount == 0) "-" else excCount.toString()}</td>
                         <td>$rateStr</td>
                         <td style="color:$warnColor;">$warnBadge</td>
-                        <td>${s.phone.ifBlank { "-" }}</td>
+                        <td>${escapeHtml(s.phone.ifBlank { "-" })}</td>
                     </tr>
                     """.trimIndent()
                 }.joinToString("\n")
@@ -2543,7 +2563,7 @@ class WaadViewModel(
                             <th>ت</th>
                             <th>اسم الطالب</th>
                             <th>الشعبة</th>
-                            <th>موقف يوم (${state.attendanceDate})</th>
+                            <th>موقف يوم (${escapeHtml(state.attendanceDate)})</th>
                             <th>أيام الحضور</th>
                             <th>أيام الغياب</th>
                             <th>الإجازات</th>
@@ -2564,8 +2584,8 @@ class WaadViewModel(
                     """
                     <tr>
                         <td>${idx + 1}</td>
-                        <td style="text-align:right;padding-right:8px;">${s.name}</td>
-                        <td>${s.section}</td>
+                        <td style="text-align:right;padding-right:8px;">${escapeHtml(s.name)}</td>
+                        <td>${escapeHtml(s.section)}</td>
                         $blankCells
                         <td></td>
                     </tr>
@@ -2597,7 +2617,7 @@ class WaadViewModel(
                     """
                     <tr>
                         <td>${idx + 1}</td>
-                        <td style="text-align:right;padding-right:6px;">${s.name} (${s.section})</td>
+                        <td style="text-align:right;padding-right:6px;">${escapeHtml(s.name)} (${escapeHtml(s.section)})</td>
                         <td>${if (res.hasM1) res.m1 else "-"}</td>
                         <td>${if (res.hasM2) res.m2 else "-"}</td>
                         <td style="background:${if (colorTheme) "#f8fafc" else "transparent"};">${if (res.hasAvg1) res.avg1 else "-"}</td>
@@ -2656,7 +2676,7 @@ class WaadViewModel(
                         <tr><td>${stats.total}</td><td>${stats.activeCount}</td><td>${stats.passed}</td><td>${stats.failed}</td><td>${stats.rate}%</td></tr>
                     </tbody>
                 </table>
-                <div>توقيع مدرس المادة<br><br>${state.settings.teacherName}</div>
+                <div>توقيع مدرس المادة<br><br>${escapeHtml(state.settings.teacherName)}</div>
                 $supervisorBlock
                 <div>مصادقة وتوقيع مدير المدرسة<br><br>.................................</div>
             </div>
@@ -2681,9 +2701,9 @@ class WaadViewModel(
         </head>
         <body>
             <div class="header">
-                <div><div>${state.settings.ministryName}</div><div>${state.settings.schoolName}</div></div>
-                <div style="text-align:center;"><div style="font-size:16px;text-decoration:underline;">$reportTitle</div><div>العام الدراسي: ${state.settings.academicYear}</div></div>
-                <div style="text-align:left;"><div>المرحلة: ${state.currentDept.name} / ${state.currentStage.name}</div><div>الشعبة: ${state.globalSec.ifBlank { "الكل" }} | المادة: $sub</div></div>
+                <div><div>${escapeHtml(state.settings.ministryName)}</div><div>${escapeHtml(state.settings.schoolName)}</div></div>
+                <div style="text-align:center;"><div style="font-size:16px;text-decoration:underline;">$reportTitle</div><div>العام الدراسي: ${escapeHtml(state.settings.academicYear)}</div></div>
+                <div style="text-align:left;"><div>المرحلة: ${escapeHtml(state.currentDept.name)} / ${escapeHtml(state.currentStage.name)}</div><div>الشعبة: ${escapeHtml(state.globalSec.ifBlank { "الكل" })} | المادة: $safeSub</div></div>
             </div>
             $tableHtml
             $footerHtml
