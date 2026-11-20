@@ -676,6 +676,8 @@ class WaadRepository(
             sObj.put("phone", s.phone)
             sObj.put("deptName", s.deptName)
             sObj.put("stageName", s.stageName)
+            sObj.put("dept", s.deptName)
+            sObj.put("stage", s.stageName)
             stdArr.put(sObj)
         }
         root.put("students", stdArr)
@@ -696,7 +698,10 @@ class WaadRepository(
             if (g.v10.isNotEmpty()) gObj.put("v10", g.v10)
             if (g.v11.isNotEmpty()) gObj.put("v11", g.v11)
             if (g.v12.isNotEmpty()) gObj.put("v12", g.v12)
-            if (g.finalExam.isNotEmpty()) gObj.put("final", g.finalExam)
+            if (g.finalExam.isNotEmpty()) {
+                gObj.put("final", g.finalExam)
+                gObj.put("finalExam", g.finalExam)
+            }
             if (g.secondRound.isNotEmpty()) gObj.put("secondRound", g.secondRound)
             if (g.qarar != 0) gObj.put("qarar", g.qarar)
             gradesObj.put(k, gObj)
@@ -776,14 +781,16 @@ class WaadRepository(
                 val sObj = stdArr.optJSONObject(i) ?: continue
                 val id = sObj.optString("id")
                 if (id.isBlank()) continue
+                val resolvedDept = sObj.optString("deptName", "").ifBlank { sObj.optString("dept", "") }
+                val resolvedStage = sObj.optString("stageName", "").ifBlank { sObj.optString("stage", "") }
                 stdEntities.add(
                     StudentEntity(
                         id = id,
                         name = sObj.optString("name"),
                         section = sObj.optString("section", "أ"),
                         phone = sObj.optString("phone", ""),
-                        deptName = sObj.optString("deptName", ""),
-                        stageName = sObj.optString("stageName", ""),
+                        deptName = resolvedDept,
+                        stageName = resolvedStage,
                         tagsJson = JSONArray(tagsMap[id] ?: emptyList<String>()).toString()
                     )
                 )
@@ -795,6 +802,8 @@ class WaadRepository(
                 while (keys.hasNext()) {
                     val k = keys.next()
                     val gObj = gRoot.optJSONObject(k) ?: continue
+                    val resolvedFinal = gObj.optString("final", "").ifBlank { gObj.optString("finalExam", "") }
+                    val resolvedQarar = gObj.optString("qarar", "").trim().toIntOrNull() ?: gObj.optInt("qarar", 0)
                     gradeEntities.add(
                         GradeEntity(
                             key = k,
@@ -811,9 +820,9 @@ class WaadRepository(
                             v10 = gObj.optString("v10", ""),
                             v11 = gObj.optString("v11", ""),
                             v12 = gObj.optString("v12", ""),
-                            finalExam = gObj.optString("final", ""),
+                            finalExam = resolvedFinal,
                             secondRound = gObj.optString("secondRound", ""),
-                            qarar = gObj.optInt("qarar", 0)
+                            qarar = resolvedQarar
                         )
                     )
                 }

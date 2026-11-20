@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" media="print" onload="this.media='all'" onerror="this.remove()">
     <style>
         :root {
             --bg-main: #F8FAFC;
@@ -2749,9 +2749,12 @@
                         <div style="display:flex;flex-direction:column;gap:4px;">
                             <div style="font-size:14px;font-weight:900;color:#A5B4FC;">بوصلة الأستاذ — إعدادات التطبيق</div>
                             <div style="font-size:11px;color:#94A3B8;">إعدادات النظام والأمان والنسخ الاحتياطي</div>
-                            <div>
+                            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:2px;">
                                 <span style="border-radius:8px;background:rgba(16,185,129,0.18);border:1px solid rgba(16,185,129,0.55);color:#6EE7B7;padding:2px 8px;font-size:11px;font-weight:900;">
                                     الإصدار الحالي: v${APP_VERSION_NAME} (${APP_VERSION_CODE})
+                                </span>
+                                <span onclick="forceRefreshOfflineCache(true)" style="cursor:pointer;border-radius:8px;background:rgba(56,189,248,0.18);border:1px solid rgba(56,189,248,0.55);color:#7DD3FC;padding:2px 8px;font-size:10px;font-weight:900;">
+                                    ${navigator.onLine === false ? '📴 وضع أوفلاين (يعمل بدون نت ✓)' : '⚡ جاهز للعمل أوفلاين 100% ✓'}
                                 </span>
                             </div>
                         </div>
@@ -5299,10 +5302,61 @@
                 e.target.value = "";
             });
 
+            // Ensure 100% Offline Support on iOS Safari & Home Screen Standalone PWA
+            forceRefreshOfflineCache(false);
+
             if ("serviceWorker" in navigator) {
-                navigator.serviceWorker.register("sw.js").catch(() => {});
+                navigator.serviceWorker.register("./sw.js", { scope: "./" }).then((reg) => {
+                    if (reg.active) {
+                        reg.active.postMessage({ type: "WARMUP_OFFLINE_CACHE" });
+                    }
+                    reg.addEventListener("updatefound", () => {
+                        const newWorker = reg.installing;
+                        if (newWorker) {
+                            newWorker.addEventListener("statechange", () => {
+                                if (newWorker.state === "activated") {
+                                    forceRefreshOfflineCache(false);
+                                }
+                            });
+                        }
+                    });
+                }).catch(() => {});
+            }
+
+            if (navigator.storage && navigator.storage.persist) {
+                navigator.storage.persist().catch(() => {});
             }
         });
+
+        async function forceRefreshOfflineCache(showNotification = false) {
+            if (!("caches" in window)) return;
+            try {
+                const cache = await caches.open("bousalat-alustadh-v4.4-offline-v3");
+                // 1. Self-cache current running document under all possible entry URLs so offline launch never misses
+                const fullHtml = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+                const htmlHeaders = { "Content-Type": "text/html; charset=utf-8" };
+                await cache.put(window.location.href, new Response(fullHtml, { status: 200, headers: htmlHeaders }));
+                await cache.put("./", new Response(fullHtml, { status: 200, headers: htmlHeaders }));
+                await cache.put("./index.html", new Response(fullHtml, { status: 200, headers: htmlHeaders }));
+                await cache.put("./bousalat_alustadh_iphone.html", new Response(fullHtml, { status: 200, headers: htmlHeaders }));
+
+                // 2. Cache icons and manifest if online
+                if (navigator.onLine !== false) {
+                    const assets = ["./manifest.json", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png"];
+                    for (const asset of assets) {
+                        try {
+                            const res = await fetch(asset, { cache: "no-cache" });
+                            if (res && res.ok) await cache.put(asset, res.clone());
+                        } catch (_) {}
+                    }
+                }
+                if (showNotification) {
+                    showToast("✅ تم تثبيت وتأمين النسخة للعمل بدون إنترنت 100%");
+                }
+            } catch (e) {
+                console.warn("Offline self-cache warning:", e);
+            }
+        }
     </script>
 </body>
 </html>

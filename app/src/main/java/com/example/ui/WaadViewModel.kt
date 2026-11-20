@@ -1393,20 +1393,42 @@ class WaadViewModel(
         _uiState.update { it.copy(bonusModal = BonusModalState()) }
     }
 
-    // Qarar (+5 decision points)
+    // Qarar (+5 decision points across all subjects per student)
     fun handleApplyQarar(studentId: String, subject: String, neededPts: Int = 5) {
         val state = _uiState.value
         val key = "${studentId}_$subject"
         val currentGrades = state.grades[key] ?: SubjectGrades()
-        val nextQarar = if (currentGrades.qarar > 0) 0 else neededPts
-        val updated = currentGrades.copy(qarar = nextQarar)
-        viewModelScope.launch {
-            repository.saveGrade(key, updated)
-            if (nextQarar > 0) {
-                showToast("⚖️ تم منح +$nextQarar درجة قرار للطالب في مادة ($subject) ✅")
-            } else {
+
+        if (currentGrades.qarar > 0) {
+            val updated = currentGrades.copy(qarar = 0)
+            viewModelScope.launch {
+                repository.saveGrade(key, updated)
                 showToast("تم إلغاء درجة القرار لمادة ($subject)")
             }
+            return
+        }
+
+        val prefix = "${studentId}_"
+        val usedAcrossOtherSubjects = state.grades
+            .filterKeys { it.startsWith(prefix) && it != key }
+            .values
+            .sumOf { it.qarar.coerceAtLeast(0) }
+
+        val remainingAllowance = (5 - usedAcrossOtherSubjects).coerceAtLeast(0)
+        if (remainingAllowance <= 0) {
+            showToast("⚠️ استنفد الطالب رصيد درجات القرار السنوي بالكامل (5 درجات موزعة على المواد)")
+            return
+        }
+        if (neededPts > remainingAllowance) {
+            showToast("⚠️ الرصيد المتبقي للطالب من درجات القرار هو ($remainingAllowance) فقط، بينما يحتاج ($neededPts) للنجاح")
+            return
+        }
+
+        val updated = currentGrades.copy(qarar = neededPts)
+        viewModelScope.launch {
+            repository.saveGrade(key, updated)
+            val leftAfter = remainingAllowance - neededPts
+            showToast("⚖️ تم منح +$neededPts درجة قرار لمادة ($subject) • المتبقي من الرصيد السنوي: $leftAfter/5 ✅")
         }
     }
 

@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" media="print" onload="this.media='all'" onerror="this.remove()">
     <style>
         :root {
             --bg-main: #F8FAFC;
@@ -1022,11 +1022,18 @@
             return `<svg class="mat-svg" width="${sizePx}" height="${sizePx}" viewBox="0 0 24 24" fill="${color}" xmlns="http://www.w3.org/2000/svg">${p}</svg>`;
         }
 
-        // Exact Iraqi Ministry Calculator (WaadCalculator.calculateResults)
+        // Exact Iraqi Ministry Calculator (WaadCalculator.calculateResults — 100% Unified with Android WaadModels.kt)
         function calculateResults(g, maxAllowedGrade = 100) {
             g = g || {};
+            const failThreshold = maxAllowedGrade === 10 ? 5 : 50;
             const p = (k) => {
-                const v = (g[k] || "").toString().trim();
+                if (k === "final") {
+                    const vf = (g.final !== undefined && g.final !== "" ? g.final : (g.finalExam || "")).toString().trim();
+                    if (!vf) return null;
+                    const nf = parseInt(vf, 10);
+                    return isNaN(nf) ? null : nf;
+                }
+                const v = (g[k] !== undefined && g[k] !== null ? g[k] : "").toString().trim();
                 if (!v) return null;
                 const n = parseInt(v, 10);
                 return isNaN(n) ? null : n;
@@ -1034,56 +1041,124 @@
             const hasField = (k) => p(k) !== null;
             const sum3 = (a, b, c) => (p(a) || 0) + (p(b) || 0) + (p(c) || 0);
 
-            if (maxAllowedGrade === 10) {
-                const hasM1 = hasField("v1"), m1 = p("v1") || 0;
-                const hasM2 = hasField("v4"), m2 = p("v4") || 0;
-                const hasAvg1 = hasM1 && hasM2, avg1 = hasAvg1 ? Math.round((m1 + m2) / 2) : 0;
-                const hasMid = hasField("mid"), mid = p("mid") || 0;
-                const hasM3 = hasField("v7"), m3 = p("v7") || 0;
-                const hasM4 = hasField("v10"), m4 = p("v10") || 0;
-                const hasAvg2 = hasM3 && hasM4, avg2 = hasAvg2 ? Math.round((m3 + m4) / 2) : 0;
-                const hasSaei = hasAvg1 && hasMid && hasAvg2;
-                const saei = hasSaei ? Math.round((avg1 + mid + avg2) / 3) : 0;
-                const hasFinal = hasField("final"), finalExam = p("final") || 0;
-                const qarar = p("qarar") || 0;
-                const effectiveSaei = Math.min(10, saei + qarar);
-                const hasFinalResult = hasSaei && hasFinal;
-                const finalResult = hasFinalResult ? Math.min(10, Math.round((saei + finalExam) / 2) + qarar) : effectiveSaei;
-                const hasSecondRound = hasField("secondRound"), secondRoundExam = p("secondRound") || 0;
-                const secondRoundResult = hasSecondRound ? Math.min(10, Math.round((saei + secondRoundExam) / 2) + qarar) : null;
-                return {
-                    m1, hasM1, m2, hasM2, avg1, hasAvg1, mid, hasMid,
-                    m3, hasM3, m4, hasM4, avg2, hasAvg2,
-                    saei, hasSaei, isExempt: false,
-                    finalExam, hasFinal, qarar, finalResult, hasFinalResult,
-                    secondRoundExam, hasSecondRound, secondRoundResult
-                };
+            const isElementaryTen = maxAllowedGrade === 10;
+            const hasM1 = isElementaryTen ? hasField("v1") : (hasField("v1") || hasField("v2") || hasField("v3"));
+            const m1 = hasM1 ? (isElementaryTen ? (p("v1") || 0) : sum3("v1", "v2", "v3")) : 0;
+
+            const hasM2 = isElementaryTen ? hasField("v4") : (hasField("v4") || hasField("v5") || hasField("v6"));
+            const m2 = hasM2 ? (isElementaryTen ? (p("v4") || 0) : sum3("v4", "v5", "v6")) : 0;
+
+            const hasAvg1 = hasM1 || hasM2;
+            const avg1 = hasAvg1 ? Math.round((m1 + m2) / (hasM1 && hasM2 ? 2 : 1)) : 0;
+
+            const hasMid = hasField("mid");
+            const mid = hasMid ? (p("mid") || 0) : 0;
+
+            const hasM3 = isElementaryTen ? hasField("v7") : (hasField("v7") || hasField("v8") || hasField("v9"));
+            const m3 = hasM3 ? (isElementaryTen ? (p("v7") || 0) : sum3("v7", "v8", "v9")) : 0;
+
+            const hasM4 = isElementaryTen ? hasField("v10") : (hasField("v10") || hasField("v11") || hasField("v12"));
+            const m4 = hasM4 ? (isElementaryTen ? (p("v10") || 0) : sum3("v10", "v11", "v12")) : 0;
+
+            const hasAvg2 = hasM3 || hasM4;
+            const avg2 = hasAvg2 ? Math.round((m3 + m4) / (hasM3 && hasM4 ? 2 : 1)) : 0;
+
+            let saei = 0;
+            let hasSaei = false;
+            if (hasAvg2 && hasMid && hasAvg1) {
+                saei = Math.round((avg1 + mid + avg2) / 3);
+                hasSaei = true;
+            } else if (hasMid && hasAvg1) {
+                saei = Math.round((avg1 + mid) / 2);
+                hasSaei = true;
+            } else if (hasAvg1) {
+                saei = avg1;
+                hasSaei = true;
             }
 
-            const hasM1 = hasField("v1") || hasField("v2") || hasField("v3"), m1 = hasM1 ? sum3("v1","v2","v3") : 0;
-            const hasM2 = hasField("v4") || hasField("v5") || hasField("v6"), m2 = hasM2 ? sum3("v4","v5","v6") : 0;
-            const hasAvg1 = hasM1 && hasM2, avg1 = hasAvg1 ? Math.round((m1 + m2) / 2) : 0;
-            const hasMid = hasField("mid"), mid = p("mid") || 0;
-            const hasM3 = hasField("v7") || hasField("v8") || hasField("v9"), m3 = hasM3 ? sum3("v7","v8","v9") : 0;
-            const hasM4 = hasField("v10") || hasField("v11") || hasField("v12"), m4 = hasM4 ? sum3("v10","v11","v12") : 0;
-            const hasAvg2 = hasM3 && hasM4, avg2 = hasAvg2 ? Math.round((m3 + m4) / 2) : 0;
-            const hasSaei = hasAvg1 && hasMid && hasAvg2;
-            const saei = hasSaei ? Math.round((avg1 + mid + avg2) / 3) : 0;
-            const isExempt = hasSaei && saei >= 90;
-            const hasFinal = hasField("final"), finalExam = p("final") || 0;
+            const isExempt = !isElementaryTen && hasSaei && saei >= 90;
+            const hasFinal = hasField("final");
+            const finalExam = hasFinal ? (p("final") || 0) : 0;
             const qarar = p("qarar") || 0;
-            const effectiveSaei = Math.min(100, saei + qarar);
-            const hasFinalResult = isExempt || (hasSaei && hasFinal);
-            const finalResult = isExempt ? saei : (hasFinalResult ? Math.min(100, Math.round((saei + finalExam) / 2) + qarar) : effectiveSaei);
-            const hasSecondRound = hasField("secondRound"), secondRoundExam = p("secondRound") || 0;
-            const secondRoundResult = hasSecondRound ? Math.min(100, Math.round((saei + secondRoundExam) / 2) + qarar) : null;
+            const effectiveSaei = Math.min(maxAllowedGrade, saei + qarar);
+
+            let finalResult = 0;
+            let hasFinalResult = false;
+            if (isExempt) {
+                finalResult = saei;
+                hasFinalResult = true;
+            } else if (hasSaei && hasFinal) {
+                finalResult = Math.min(maxAllowedGrade, Math.round((saei + finalExam) / 2) + qarar);
+                hasFinalResult = true;
+            } else if (hasSaei) {
+                finalResult = effectiveSaei;
+            }
+
+            const isFailedFirstRound = (hasFinalResult && finalResult < failThreshold) ||
+                (!hasFinalResult && hasSaei && effectiveSaei < failThreshold);
+            const hasSecondRound = hasField("secondRound");
+            const secondRoundExam = hasSecondRound ? (p("secondRound") || 0) : 0;
+            let secondRoundResult = null;
+            if (isFailedFirstRound && hasSecondRound) {
+                secondRoundResult = hasSaei
+                    ? Math.min(maxAllowedGrade, Math.round((saei + secondRoundExam) / 2) + qarar)
+                    : Math.min(maxAllowedGrade, secondRoundExam + qarar);
+            }
+
             return {
                 m1, hasM1, m2, hasM2, avg1, hasAvg1, mid, hasMid,
                 m3, hasM3, m4, hasM4, avg2, hasAvg2,
                 saei, hasSaei, isExempt,
                 finalExam, hasFinal, qarar, finalResult, hasFinalResult,
-                secondRoundExam, hasSecondRound, secondRoundResult
+                isFailedFirstRound, secondRoundExam, hasSecondRound, secondRoundResult
             };
+        }
+
+        // Device ID & Activation Key Verification (Matching WaadCalculator.verifyActivationKey in Android)
+        function getOrCreateDeviceId() {
+            let devId = localStorage.getItem("WAAD_IOS_DEVICE_ID");
+            if (!devId || !/^\d{5,9}$/.test(devId)) {
+                devId = String(Math.floor(100000 + Math.random() * 899999));
+                localStorage.setItem("WAAD_IOS_DEVICE_ID", devId);
+            }
+            return devId;
+        }
+
+        function verifyActivationKey(devId, code) {
+            const cleanId = String(devId || "").replace(/\D/g, "");
+            const cleanCode = String(code || "").trim().toUpperCase().replace(/\s+/g, "");
+            if (!cleanId || !cleanCode) return false;
+            const num = parseInt(cleanId, 10);
+            if (isNaN(num)) return false;
+            const part1 = String(((num * 1993) % 8999) + 1000);
+            const part2 = String(((num * 2026) % 8999) + 1000);
+            return cleanCode === `WAAD-${part1}-${part2}`;
+        }
+
+        function computeTrialDaysLeft() {
+            let firstInstallTs = parseInt(localStorage.getItem("WAAD_FIRST_INSTALL_TS") || "0", 10);
+            if (!firstInstallTs || isNaN(firstInstallTs)) {
+                firstInstallTs = Date.now();
+                localStorage.setItem("WAAD_FIRST_INSTALL_TS", String(firstInstallTs));
+            }
+            const elapsedDays = Math.floor((Date.now() - firstInstallTs) / (1000 * 60 * 60 * 24));
+            return Math.max(0, 2 - elapsedDays);
+        }
+
+        // Track Student's Total 5-Point Annual Qarar Balance Across All Subjects
+        function getStudentTotalQararUsed(studentId, excludeSubject = "") {
+            const stg = getCurrentStage();
+            const subs = (stg && stg.subjects) || [];
+            let total = 0;
+            subs.forEach(sub => {
+                if (sub !== excludeSubject) {
+                    const g = state.grades[`${studentId}_${sub}`];
+                    if (g && g.qarar) {
+                        total += (parseInt(g.qarar, 10) || 0);
+                    }
+                }
+            });
+            return total;
         }
 
         function getTodayStr() {
@@ -1157,7 +1232,7 @@
             notificationSettings: { enabled: true, leadMinutes: 5 },
             // Settings state
             settingsFormMinistry: "وزارة التربية",
-            settingsFormSchool: "ثانوية الفرات للبنين",
+            settingsFormSchool: "اعدادية الزيتون المهنية للبنين",
             settingsFormTeacher: "الأستاذ : وعد بزيع",
             settingsFormYear: "2025 - 2026",
             hasUnsavedSettings: false,
@@ -1170,9 +1245,10 @@
             isPinLocked: false,
             pinEntryBuffer: "",
             // Subscription
+            deviceId: getOrCreateDeviceId(),
             isSubscribed: false,
             subscriptionPlan: "",
-            trialDaysLeft: 2,
+            trialDaysLeft: computeTrialDaysLeft(),
             // Speed Mode & Print Overlays
             isSpeedModeOpen: false,
             speedConfig: { activeIdx: 0, activeTab: "m1", activeSubFieldIdx: 0, autoAdvance: true, isFreshField: true },
@@ -1193,7 +1269,7 @@
             // Persistent Collections
             settings: {
                 ministryName: "وزارة التربية",
-                schoolName: "ثانوية الفرات للبنين",
+                schoolName: "اعدادية الزيتون المهنية للبنين",
                 teacherName: "الأستاذ : وعد بزيع",
                 academicYear: "2025 - 2026",
                 structure: JSON.parse(JSON.stringify(DEFAULT_STRUCTURE))
@@ -1202,21 +1278,62 @@
             grades: {},
             attendance: {},
             studentTags: {},
+            studentDatedNotes: {},
             missingHomework: {},
             sectionNotes: {},
             teacherSchedule: {}
         };
 
+        // Normalize cross-platform Backup JSON (Android <-> iPhone bidirectional compatibility)
+        function normalizeParsedDatabase(parsed) {
+            if (!parsed || typeof parsed !== "object") return;
+            if (Array.isArray(parsed.students)) {
+                parsed.students = parsed.students.map(s => {
+                    const deptVal = (s.dept || s.deptName || "").trim();
+                    const stageVal = (s.stage || s.stageName || "").trim();
+                    return {
+                        ...s,
+                        dept: deptVal,
+                        stage: stageVal,
+                        deptName: deptVal,
+                        stageName: stageVal,
+                        section: (s.section || "أ").trim(),
+                        phone: (s.phone || "").trim()
+                    };
+                });
+            }
+            if (parsed.grades && typeof parsed.grades === "object") {
+                for (const k in parsed.grades) {
+                    const g = parsed.grades[k];
+                    if (g && typeof g === "object") {
+                        const fnl = g.final !== undefined && g.final !== "" ? g.final : (g.finalExam !== undefined ? g.finalExam : "");
+                        if (fnl !== "") {
+                            g.final = String(fnl);
+                            g.finalExam = String(fnl);
+                        }
+                        if (g.qarar !== undefined && g.qarar !== "") {
+                            const qNum = parseInt(g.qarar, 10) || 0;
+                            g.qarar = qNum > 0 ? String(qNum) : "";
+                        }
+                    }
+                }
+            }
+        }
+
         function loadDatabase() {
+            state.deviceId = getOrCreateDeviceId();
+            state.trialDaysLeft = computeTrialDaysLeft();
             try {
                 const raw = localStorage.getItem(STORAGE_KEY);
                 if (raw) {
                     const parsed = JSON.parse(raw);
+                    normalizeParsedDatabase(parsed);
                     if (parsed.settings) state.settings = parsed.settings;
                     if (Array.isArray(parsed.students)) state.students = parsed.students;
                     if (parsed.grades) state.grades = parsed.grades;
                     if (parsed.attendance) state.attendance = parsed.attendance;
                     if (parsed.studentTags) state.studentTags = parsed.studentTags;
+                    if (parsed.studentDatedNotes) state.studentDatedNotes = parsed.studentDatedNotes;
                     if (parsed.missingHomework) state.missingHomework = parsed.missingHomework;
                     if (parsed.sectionNotes) state.sectionNotes = parsed.sectionNotes;
                     if (parsed.teacherSchedule) state.teacherSchedule = parsed.teacherSchedule;
@@ -1245,11 +1362,11 @@
 
         function seedInitialSampleData() {
             state.students = [
-                { id: "std_1", name: "أحمد محمد عبد الله", dept: "المتوسطة", stage: "الأول المتوسط", section: "أ", phone: "07701234567" },
-                { id: "std_2", name: "حسن علي حسين", dept: "المتوسطة", stage: "الأول المتوسط", section: "أ", phone: "07801234567" },
-                { id: "std_3", name: "حسين كاظم جواد", dept: "المتوسطة", stage: "الأول المتوسط", section: "أ", phone: "07901234567" },
-                { id: "std_4", name: "زيد عمر فاروق", dept: "المتوسطة", stage: "الأول المتوسط", section: "ب", phone: "07711122233" },
-                { id: "std_5", name: "عبد الله سرمد طارق", dept: "المتوسطة", stage: "الأول المتوسط", section: "ب", phone: "07811122233" }
+                { id: "std_1", name: "أحمد محمد عبد الله", dept: "المتوسطة", stage: "الأول المتوسط", deptName: "المتوسطة", stageName: "الأول المتوسط", section: "أ", phone: "07701234567" },
+                { id: "std_2", name: "حسن علي حسين", dept: "المتوسطة", stage: "الأول المتوسط", deptName: "المتوسطة", stageName: "الأول المتوسط", section: "أ", phone: "07801234567" },
+                { id: "std_3", name: "حسين كاظم جواد", dept: "المتوسطة", stage: "الأول المتوسط", deptName: "المتوسطة", stageName: "الأول المتوسط", section: "أ", phone: "07901234567" },
+                { id: "std_4", name: "زيد عمر فاروق", dept: "المتوسطة", stage: "الأول المتوسط", deptName: "المتوسطة", stageName: "الأول المتوسط", section: "ب", phone: "07711122233" },
+                { id: "std_5", name: "عبد الله سرمد طارق", dept: "المتوسطة", stage: "الأول المتوسط", deptName: "المتوسطة", stageName: "الأول المتوسط", section: "ب", phone: "07811122233" }
             ];
             state.grades = {
                 "std_1_الرياضيات": { v1: "18", v2: "19", v3: "56", v4: "19", v5: "20", v6: "55", mid: "92", v7: "19", v8: "18", v9: "57", v10: "20", v11: "19", v12: "56" },
@@ -1272,12 +1389,21 @@
 
         function saveDatabase() {
             try {
+                // Keep both dept/deptName and stage/stageName synced for 100% Android backup compatibility
+                const syncedStudents = (state.students || []).map(s => ({
+                    ...s,
+                    dept: s.dept || s.deptName || "",
+                    stage: s.stage || s.stageName || "",
+                    deptName: s.dept || s.deptName || "",
+                    stageName: s.stage || s.stageName || ""
+                }));
                 const payload = {
                     settings: state.settings,
-                    students: state.students,
+                    students: syncedStudents,
                     grades: state.grades,
                     attendance: state.attendance,
                     studentTags: state.studentTags,
+                    studentDatedNotes: state.studentDatedNotes,
                     missingHomework: state.missingHomework,
                     sectionNotes: state.sectionNotes,
                     teacherSchedule: state.teacherSchedule,
@@ -2749,9 +2875,12 @@
                         <div style="display:flex;flex-direction:column;gap:4px;">
                             <div style="font-size:14px;font-weight:900;color:#A5B4FC;">بوصلة الأستاذ — إعدادات التطبيق</div>
                             <div style="font-size:11px;color:#94A3B8;">إعدادات النظام والأمان والنسخ الاحتياطي</div>
-                            <div>
+                            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:2px;">
                                 <span style="border-radius:8px;background:rgba(16,185,129,0.18);border:1px solid rgba(16,185,129,0.55);color:#6EE7B7;padding:2px 8px;font-size:11px;font-weight:900;">
                                     الإصدار الحالي: v${APP_VERSION_NAME} (${APP_VERSION_CODE})
+                                </span>
+                                <span onclick="forceRefreshOfflineCache(true)" style="cursor:pointer;border-radius:8px;background:rgba(56,189,248,0.18);border:1px solid rgba(56,189,248,0.55);color:#7DD3FC;padding:2px 8px;font-size:10px;font-weight:900;">
+                                    ${navigator.onLine === false ? '📴 وضع أوفلاين (يعمل بدون نت ✓)' : '⚡ جاهز للعمل أوفلاين 100% ✓'}
                                 </span>
                             </div>
                         </div>
@@ -3552,6 +3681,9 @@
                 const presCount = countStudentTotalStatus(std.id, "present");
                 const absCount = countStudentTotalAbsences(std.id);
                 const tags = state.studentTags[std.id] || [];
+                const datedNotes = state.studentDatedNotes[std.id] || [];
+                const totalQararUsed = getStudentTotalQararUsed(std.id);
+                const qararRemaining = Math.max(0, 5 - totalQararUsed);
 
                 const behaviorChips = BEHAVIOR_TAGS.map(tag => {
                     const active = tags.includes(tag);
@@ -3578,7 +3710,7 @@
                         <div style="display:flex;align-items:center;justify-content:space-between;">
                             <span style="font-size:13px;font-weight:900;">${escapeHtml(sub)}</span>
                             <div style="display:flex;align-items:center;gap:6px;">
-                                <button onclick="grantDecisionMarks('${std.id}','${escapeHtml(sub)}')" style="border-radius:8px;background:rgba(245,158,11,0.16);color:#D97706;padding:3px 8px;font-size:10px;font-weight:900;">+ منح قرار</button>
+                                <button onclick="grantDecisionMarks('${std.id}','${escapeHtml(sub)}')" style="border-radius:8px;background:rgba(245,158,11,0.16);color:#D97706;padding:3px 8px;font-size:10px;font-weight:900;">+ منح قرار (${res.qarar}/5)</button>
                                 <span style="border-radius:8px;background:${!res.hasSaei ? 'rgba(148,163,184,0.16)' : (isPass ? 'rgba(16,185,129,0.16)' : 'rgba(244,63,94,0.16)')};color:${!res.hasSaei ? '#94A3B8' : (isPass ? '#10B981' : '#F43F5E')};padding:3px 8px;font-size:10px;font-weight:900;">
                                     السعي: ${res.isExempt ? `✨ معفي (${res.saei})` : (res.hasSaei ? `${effSaei}${res.qarar > 0 ? ` (+${res.qarar} قرار)` : ''}` : '-')}
                                 </span>
@@ -3623,24 +3755,46 @@
                             </div>
                         </div>
                         <div class="modal-body">
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:8px;">
-                                <div style="border-radius:14px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);padding:8px;text-align:center;">
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1.15fr;gap:6px;">
+                                <div style="border-radius:14px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);padding:8px 4px;text-align:center;">
                                     <div style="font-size:10px;font-weight:800;color:#10B981;">حضور</div>
-                                    <div style="font-size:16px;font-weight:900;color:#10B981;">${presCount}</div>
+                                    <div style="font-size:15px;font-weight:900;color:#10B981;">${presCount}</div>
                                 </div>
-                                <div style="border-radius:14px;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.3);padding:8px;text-align:center;">
+                                <div style="border-radius:14px;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.3);padding:8px 4px;text-align:center;">
                                     <div style="font-size:10px;font-weight:800;color:#F43F5E;">غياب</div>
-                                    <div style="font-size:16px;font-weight:900;color:#F43F5E;">${absCount}</div>
+                                    <div style="font-size:15px;font-weight:900;color:#F43F5E;">${absCount}</div>
                                 </div>
-                                <div style="border-radius:14px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);padding:8px;text-align:center;">
-                                    <div style="font-size:10px;font-weight:800;color:#6366F1;">هاتف ولي الأمر</div>
-                                    <div style="font-size:11px;font-weight:900;color:#6366F1;">${escapeHtml(std.phone || "غير مسجل")}</div>
+                                <div style="border-radius:14px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);padding:8px 4px;text-align:center;">
+                                    <div style="font-size:10px;font-weight:800;color:#D97706;">رصيد القرار</div>
+                                    <div style="font-size:13px;font-weight:900;color:#D97706;">متبقي ${qararRemaining}/5</div>
+                                </div>
+                                <div style="border-radius:14px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);padding:8px 4px;text-align:center;">
+                                    <div style="font-size:10px;font-weight:800;color:#6366F1;">ولي الأمر</div>
+                                    <div style="font-size:10px;font-weight:900;color:#6366F1;">${escapeHtml(std.phone || "غير مسجل")}</div>
                                 </div>
                             </div>
 
                             <div>
                                 <div style="font-size:11px;font-weight:900;color:var(--text-muted);margin-bottom:6px;">تقييم السلوك والمشاركة الصفية:</div>
                                 <div style="display:flex;flex-wrap:wrap;gap:6px;">${behaviorChips}</div>
+                            </div>
+
+                            <div style="border-radius:16px;background:var(--bg-sub);border:1px solid var(--border-color);padding:10px;display:flex;flex-direction:column;gap:6px;">
+                                <div style="font-size:11px;font-weight:900;color:var(--indigo-500);">📝 سجل الملاحظات المؤرخة للطالب (يظهر في تقرير ولي الأمر):</div>
+                                <div style="display:flex;gap:6px;">
+                                    <input type="text" id="std-dated-note-inp" class="field-input" style="padding:7px 10px;font-size:11px;" placeholder="أضف ملاحظة بتأريخ اليوم (مثال: مشاركة ممتازة / لم يحضر الدفتر)..." />
+                                    <button onclick="addStudentDatedNote('${std.id}')" style="border-radius:10px;background:#4F46E5;color:#FFF;padding:0 12px;font-size:11px;font-weight:900;white-space:nowrap;">+ إضافة</button>
+                                </div>
+                                ${datedNotes.length > 0 ? `
+                                    <div style="display:flex;flex-direction:column;gap:4px;max-height:90px;overflow-y:auto;margin-top:2px;">
+                                        ${datedNotes.map((n, nIdx) => `
+                                            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-card);border-radius:8px;padding:4px 8px;font-size:10px;font-weight:800;">
+                                                <span>📅 ${escapeHtml(n.date)}: ${escapeHtml(n.text)}</span>
+                                                <button onclick="deleteStudentDatedNote('${std.id}', ${nIdx})" style="color:#F43F5E;font-weight:900;padding:0 4px;">✕</button>
+                                            </div>
+                                        `).join("")}
+                                    </div>
+                                ` : ''}
                             </div>
 
                             <div style="display:flex;flex-direction:column;gap:10px;">
@@ -4007,9 +4161,13 @@
                     <div class="modal-sheet" onclick="event.stopPropagation()">
                         <div style="background:linear-gradient(135deg,#312E81,#581C87);padding:18px;color:#FFF;text-align:center;">
                             <div style="font-size:17px;font-weight:900;">💎 تفعيل النسخة الكاملة — بوصلة الأستاذ</div>
-                            <div style="font-size:11px;color:#CBD5E1;margin-top:4px;">اختر الباقة المناسبة أو أدخل كود التفعيل لتشغيل جميع المميزات بلا حدود</div>
+                            <div style="font-size:11px;color:#CBD5E1;margin-top:4px;">اختر الباقة المناسبة أو أدخل كود التفعيل المرتبط بجهازك لتشغيل جميع المميزات بلا حدود</div>
                         </div>
                         <div class="modal-body">
+                            <div style="border-radius:14px;background:rgba(79,70,229,0.12);border:1px dashed #6366F1;padding:10px;display:flex;align-items:center;justify-content:space-between;">
+                                <span style="font-size:11px;font-weight:900;color:var(--text-secondary);">📱 رقم معرّف جهازك (Device ID):</span>
+                                <span dir="ltr" style="font-size:14px;font-weight:900;color:#4F46E5;letter-spacing:1px;">${escapeHtml(state.deviceId)}</span>
+                            </div>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                                 <div style="border-radius:16px;background:var(--bg-sub);border:1.5px solid var(--border-color);padding:12px;text-align:center;">
                                     <div style="font-size:12px;font-weight:900;">الباقة الشهرية</div>
@@ -4022,9 +4180,9 @@
                                     <div style="font-size:10px;color:var(--text-muted);">عام دراسي كامل</div>
                                 </div>
                             </div>
-                            <input type="text" id="sub-code-inp" class="field-input" placeholder="أدخل كود التفعيل (مثل WAAD2026 أو FREE)..." />
+                            <input type="text" dir="ltr" id="sub-code-inp" class="field-input" style="text-align:center;font-weight:900;" placeholder="WAAD-XXXX-XXXX" />
                             <button onclick="activateSubscriptionCode()" style="height:46px;border-radius:14px;background:#10B981;color:#FFF;font-size:13px;font-weight:900;">تفعيل الكود الآن ✅</button>
-                            <button onclick="requestActivationViaWhatsApp()" style="height:42px;border-radius:14px;background:#4F46E5;color:#FFF;font-size:12px;font-weight:900;">💬 طلب كود تفعيل عبر واتساب</button>
+                            <button onclick="requestActivationViaWhatsApp()" style="height:42px;border-radius:14px;background:#4F46E5;color:#FFF;font-size:12px;font-weight:900;">💬 إرسال رقم الجهاز وطلب الكود عبر واتساب</button>
                             <button onclick="closeModal()" style="height:40px;border-radius:14px;background:#334155;color:#FFF;font-size:12px;font-weight:800;">إغلاق</button>
                         </div>
                     </div>
@@ -4042,8 +4200,11 @@
                     <div class="modal-sheet" onclick="event.stopPropagation()">
                         <div class="modal-top-bar" style="background:#4F46E5;"></div>
                         <div class="modal-body">
-                            <div style="font-size:14px;font-weight:900;color:var(--indigo-500);">إضافة شعبة كاملة (PDF / صورة / نص)</div>
+                            <div style="font-size:14px;font-weight:900;color:var(--indigo-500);">إضافة شعبة كاملة (PDF / Excel CSV / نص)</div>
                             <select class="field-select" onchange="state.bulkTargetSec=this.value">${secOpts}</select>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="triggerSmartImportFile()" style="flex:1;height:38px;border-radius:10px;background:rgba(16,185,129,0.14);border:1px solid #10B981;color:#059669;font-size:11px;font-weight:900;">📄 استيراد ملف Excel (CSV) أو نص</button>
+                            </div>
                             <textarea class="field-textarea" rows="5" placeholder="الصق الأسماء هنا (كل اسم في سطر)..." oninput="state.bulkText=this.value">${escapeHtml(state.bulkText)}</textarea>
                             <div style="display:flex;gap:8px;">
                                 <button onclick="closeModal()" style="flex:1;height:46px;border-radius:14px;background:#334155;color:#FFF;font-size:13px;font-weight:900;">إلغاء</button>
@@ -4139,6 +4300,10 @@
         // CONTROLLER FUNCTIONS & INTERACTIONS
         // ============================================================
         function renderApp() {
+            const prevWindowY = window.scrollY || window.pageYOffset || 0;
+            const prevModalBody = document.querySelector("#modal-root .modal-body");
+            const prevModalScrollTop = prevModalBody ? prevModalBody.scrollTop : 0;
+
             applyThemeClass();
             document.getElementById("pin-lock-root").innerHTML = renderPinLockOverlay();
 
@@ -4159,6 +4324,15 @@
                 renderSpeedGradingOverlay() + renderOfficialPrintStudioOverlay();
 
             document.getElementById("modal-root").innerHTML = renderActiveModal();
+
+            // Restore scroll position to prevent jarring scroll reset on long student lists
+            if (prevWindowY > 0) {
+                window.scrollTo(0, prevWindowY);
+            }
+            if (prevModalScrollTop > 0) {
+                const newModalBody = document.querySelector("#modal-root .modal-body");
+                if (newModalBody) newModalBody.scrollTop = prevModalScrollTop;
+            }
         }
 
         function switchView(viewName) {
@@ -4313,6 +4487,8 @@
                     name,
                     dept: curDept,
                     stage: curStage,
+                    deptName: curDept,
+                    stageName: curStage,
                     section: sec,
                     phone
                 });
@@ -4346,13 +4522,21 @@
             const curStage = getCurrentStage().name;
             const sec = state.bulkTargetSec || (getCurrentStage().sections[0] || "أ");
             lines.forEach((name, i) => {
+                // Support CSV rows if user pasted or imported "Name,Section,Phone"
+                const parts = name.split(/[,;\t]/).map(x => x.replace(/^["']|["']$/g, "").trim()).filter(Boolean);
+                const cleanName = parts[0] || name;
+                if (cleanName === "اسم الطالب" || cleanName === "ت") return;
+                const rowSec = (parts[1] && parts[1].length <= 3) ? parts[1] : sec;
+                const rowPhone = (parts[2] && /\d{7,}/.test(parts[2])) ? parts[2] : "";
                 state.students.push({
                     id: "std_" + Date.now() + "_" + i + "_" + Math.floor(Math.random() * 999),
-                    name,
+                    name: cleanName,
                     dept: curDept,
                     stage: curStage,
-                    section: sec,
-                    phone: ""
+                    deptName: curDept,
+                    stageName: curStage,
+                    section: rowSec,
+                    phone: rowPhone
                 });
             });
             state.bulkText = "";
@@ -4367,6 +4551,19 @@
             renderApp();
         }
 
+        // Complete cleanup of all associated records when deleting students (fixes localStorage leak)
+        function purgeStudentRecordsByIds(idsList) {
+            const idSet = new Set(idsList);
+            idSet.forEach(id => {
+                delete state.studentTags[id];
+                delete state.studentDatedNotes[id];
+                const prefix = `${id}_`;
+                Object.keys(state.grades).forEach(k => { if (k.startsWith(prefix)) delete state.grades[k]; });
+                Object.keys(state.attendance).forEach(k => { if (k.startsWith(prefix)) delete state.attendance[k]; });
+                Object.keys(state.missingHomework).forEach(k => { if (k.startsWith(prefix)) delete state.missingHomework[k]; });
+            });
+        }
+
         function confirmDeleteSingleStudent(studentId) {
             const std = state.students.find(s => s.id === studentId);
             if (!std) return;
@@ -4378,9 +4575,10 @@
                 onConfirm: () => {
                     state.students = state.students.filter(s => s.id !== studentId);
                     state.selectedStudentIdsForDelete = state.selectedStudentIdsForDelete.filter(id => id !== studentId);
+                    purgeStudentRecordsByIds([studentId]);
                     saveDatabase();
                     closeModal();
-                    showToast("🗑️ تم حذف الطالب من السجل");
+                    showToast("🗑️ تم حذف الطالب وتنظيف سجلاته بالكامل");
                 }
             };
             renderApp();
@@ -4396,17 +4594,43 @@
                 confirmText: `حذف (${ids.length}) طالب 🗑️`,
                 onConfirm: () => {
                     state.students = state.students.filter(s => !ids.includes(s.id));
+                    purgeStudentRecordsByIds(ids);
                     state.selectedStudentIdsForDelete = [];
                     state.isMultiSelectMode = false;
                     saveDatabase();
                     closeModal();
-                    showToast(`🗑️ تم حذف (${ids.length}) طالب بنجاح`);
+                    showToast(`🗑️ تم حذف (${ids.length}) طالب وتنظيف سجلاتهم بنجاح`);
                 }
             };
             renderApp();
         }
 
-        // Homework, Bonus, Behavior & Qarar
+        // Homework, Bonus, Behavior, Dated Notes & Qarar
+        function addStudentDatedNote(studentId) {
+            const inp = document.getElementById("std-dated-note-inp");
+            const txt = (inp ? inp.value : "").trim();
+            if (!txt) {
+                showToast("⚠️ يرجى كتابة الملاحظة أولاً");
+                return;
+            }
+            const list = [...(state.studentDatedNotes[studentId] || [])];
+            list.unshift({ date: getTodayStr(), text: txt });
+            state.studentDatedNotes[studentId] = list;
+            saveDatabase();
+            renderApp();
+            showToast("📝 تمت إضافة الملاحظة المؤرخة لسجل الطالب");
+        }
+
+        function deleteStudentDatedNote(studentId, idx) {
+            const list = [...(state.studentDatedNotes[studentId] || [])];
+            if (idx >= 0 && idx < list.length) {
+                list.splice(idx, 1);
+                state.studentDatedNotes[studentId] = list;
+                saveDatabase();
+                renderApp();
+            }
+        }
+
         function openSectionHomeworkModal(sec) {
             const curDept = getCurrentDept();
             const curStage = getCurrentStage();
@@ -4543,11 +4767,22 @@
             const gKey = `${studentId}_${subject}`;
             state.grades[gKey] = state.grades[gKey] || {};
             const curQ = parseInt(state.grades[gKey].qarar || "0", 10) || 0;
-            const nextQ = curQ >= 5 ? 0 : curQ + 1;
+            const usedInOtherSubjects = getStudentTotalQararUsed(studentId, subject);
+            const maxAllowedForThisSubject = Math.max(0, 5 - usedInOtherSubjects);
+
+            if (maxAllowedForThisSubject === 0 && curQ === 0) {
+                showToast("⚠️ استنفد الطالب رصيد درجات القرار السنوي (5 درجات) في المواد الأخرى!");
+                return;
+            }
+
+            const nextQ = curQ >= maxAllowedForThisSubject ? 0 : curQ + 1;
             state.grades[gKey].qarar = nextQ > 0 ? String(nextQ) : "";
             saveDatabase();
             renderApp();
-            showToast(nextQ > 0 ? `✅ تم منح (+${nextQ}) درجة قرار` : "تم إلغاء درجة القرار");
+            const remAfter = Math.max(0, 5 - (usedInOtherSubjects + nextQ));
+            showToast(nextQ > 0
+                ? `✅ تم منح (+${nextQ}) قرار في ${subject} (المتبقي من الرصيد السنوي: ${remAfter})`
+                : "تم إلغاء درجة القرار لهذه المادة");
         }
         // ============================================================
         // PART 8: SPEED KEYPAD, ATTENDANCE, SCHEDULE, WHATSAPP & INIT
@@ -4606,6 +4841,7 @@
 
             if (valStr === "") {
                 g[fieldName] = "";
+                if (fieldName === "final") g.finalExam = "";
                 saveDatabase();
                 return true;
             }
@@ -4627,6 +4863,7 @@
                 }
             }
             g[fieldName] = String(num);
+            if (fieldName === "final") g.finalExam = String(num);
             saveDatabase();
             return true;
         }
@@ -4719,19 +4956,21 @@
             }
         }
 
-        function openVoiceGradingPrompt() {
-            const speedList = getSpeedStudentsList();
-            const std = speedList[state.speedConfig.activeIdx];
-            if (!std) return;
-            const spoken = prompt(`🎙️ الرصد الصوتي والذكي للطالب (${std.name}):\nأدخل الدرجة (أو 3 درجات معاً لليومي والعملي والتحريري مفصولة بمسافة مثل: 15 18 55):`);
-            if (!spoken) return;
-            const nums = (spoken.match(/\d+/g) || []).map(x => parseInt(x, 10));
-            if (!nums.length) return;
+        function applySpokenGradesString(std, spokenText) {
+            if (!spokenText) return;
+            // Convert Arabic-Indic digits to standard digits if present
+            const normalized = String(spokenText).replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+            const nums = (normalized.match(/\d+/g) || []).map(x => parseInt(x, 10));
+            if (!nums.length) {
+                showToast("⚠️ لم يتم التعرف على أرقام في الصوت");
+                return;
+            }
             const activeTab = state.speedConfig.activeTab || "m1";
             const maxG = getMaxAllowedGrade();
             const isMonthly = activeTab.startsWith("m") && activeTab !== "mid" && maxG !== 10;
             const mIdx = parseInt(activeTab.replace("m", ""), 10) || 1;
             const startNum = (mIdx - 1) * 3 + 1;
+            const speedList = getSpeedStudentsList();
 
             if (isMonthly && nums.length >= 3) {
                 setGradeFieldVerified(std.id, `v${startNum}`, String(nums[0]));
@@ -4740,12 +4979,45 @@
                 if (state.speedConfig.activeIdx < speedList.length - 1) state.speedConfig.activeIdx++;
                 state.speedConfig.activeSubFieldIdx = 0;
                 renderApp();
+                showToast(`🎙️ تم رصد (${nums[0]}، ${nums[1]}، ${nums[2]}) للطالب ${std.name}`);
             } else {
                 const fieldName = getCurrentSpeedFieldName();
                 if (setGradeFieldVerified(std.id, fieldName, String(nums[0]))) {
+                    showToast(`🎙️ تم رصد (${nums[0]}) للطالب ${std.name}`);
                     advanceSpeedField();
                 }
             }
+        }
+
+        function openVoiceGradingPrompt() {
+            const speedList = getSpeedStudentsList();
+            const std = speedList[state.speedConfig.activeIdx];
+            if (!std) return;
+
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRec) {
+                try {
+                    const rec = new SpeechRec();
+                    rec.lang = "ar-IQ";
+                    rec.interimResults = false;
+                    rec.maxAlternatives = 1;
+                    showToast(`🎙️ تحدث الآن لرصد درجة (${std.name})...`);
+                    rec.onresult = (event) => {
+                        const transcript = event.results && event.results[0] && event.results[0][0]
+                            ? event.results[0][0].transcript
+                            : "";
+                        applySpokenGradesString(std, transcript);
+                    };
+                    rec.onerror = () => {
+                        const fallback = prompt(`🎙️ الإدخال الصوتي/السريع للطالب (${std.name}):\nأدخل الدرجة (أو 3 درجات مفصولة بمسافة مثل: 15 18 55):`);
+                        if (fallback) applySpokenGradesString(std, fallback);
+                    };
+                    rec.start();
+                    return;
+                } catch (_) {}
+            }
+            const spoken = prompt(`🎙️ الرصد الصوتي والذكي للطالب (${std.name}):\nأدخل الدرجة (أو 3 درجات معاً لليومي والعملي والتحريري مفصولة بمسافة مثل: 15 18 55):`);
+            if (spoken) applySpokenGradesString(std, spoken);
         }
 
         // Print Studio Actions
@@ -5022,19 +5294,32 @@
             const maxG = getMaxAllowedGrade();
             const activeSub = state.globalSub || (curStage.subjects[0] || "عام");
             const absCount = countStudentTotalAbsences(std.id);
+            const tags = (state.studentTags[std.id] || []).filter(t => t !== INTISAB_TAG);
+            const datedNotes = state.studentDatedNotes[std.id] || [];
             let lines = [
                 `📋 *تقرير المستوى الدراسي والسلوك*`,
                 `🏫 المدرسة: ${state.settings.schoolName}`,
                 `👤 الطالب: ${std.name} (${std.stage} - شعبة ${std.section})`,
-                `📅 الغيابات المسجلة: ${absCount} يوم`,
-                `────────────────`
+                `📅 الغيابات المسجلة: ${absCount} يوم`
             ];
+            if (tags.length > 0) {
+                lines.push(`⭐ التقييم السلوكي: ${tags.join(" ، ")}`);
+            }
+            lines.push(`────────────────`);
             const subs = scope === "all" ? (curStage.subjects || [activeSub]) : [activeSub];
             subs.forEach(sub => {
                 const res = calculateResults(state.grades[`${std.id}_${sub}`], maxG);
                 const hw = state.missingHomework[`${std.id}_${sub}`] || 0;
-                lines.push(`📘 *${sub}*: ف1(${res.hasAvg1 ? res.avg1 : '-'}) | نصف السنة(${res.hasMid ? res.mid : '-'}) | ف2(${res.hasAvg2 ? res.avg2 : '-'}) | السعي(${res.hasSaei ? res.saei : '-'})${hw > 0 ? ` | نقص واجب: ${hw}` : ''}`);
+                const effSaei = Math.min(maxG, res.saei + res.qarar);
+                lines.push(`📘 *${sub}*: ف1(${res.hasAvg1 ? res.avg1 : '-'}) | نصف السنة(${res.hasMid ? res.mid : '-'}) | ف2(${res.hasAvg2 ? res.avg2 : '-'}) | السعي(${res.hasSaei ? effSaei : '-'})${res.qarar > 0 ? ` [+${res.qarar} قرار]` : ''}${hw > 0 ? ` | نقص واجب: ${hw}` : ''}`);
             });
+            if (datedNotes.length > 0) {
+                lines.push(`────────────────`);
+                lines.push(`📝 *الملاحظات اليومية المؤرخة:*`);
+                datedNotes.slice(0, 4).forEach(n => {
+                    lines.push(`• (${n.date}): ${n.text}`);
+                });
+            }
             lines.push(`────────────────`);
             lines.push(`👨‍🏫 المدرس: ${state.settings.teacherName}`);
             return lines.join("\n");
@@ -5088,7 +5373,7 @@
         // Settings & Structure Actions
         function saveOfficialSchoolSettings() {
             state.settings.ministryName = (state.settingsFormMinistry || "").trim() || "وزارة التربية";
-            state.settings.schoolName = (state.settingsFormSchool || "").trim() || "ثانوية الفرات للبنين";
+            state.settings.schoolName = (state.settingsFormSchool || "").trim() || "اعدادية الزيتون المهنية للبنين";
             state.settings.teacherName = (state.settingsFormTeacher || "").trim() || "الأستاذ : وعد بزيع";
             state.settings.academicYear = (state.settingsFormYear || "").trim() || "2025 - 2026";
             state.hasUnsavedSettings = false;
@@ -5142,10 +5427,19 @@
         }
         function requestDeleteStruct(kind, idx) {
             if (kind === "d" && state.settings.structure.length > 1) {
+                const dept = state.settings.structure[idx];
+                const removedIds = state.students.filter(s => s.dept === dept.name).map(s => s.id);
+                state.students = state.students.filter(s => s.dept !== dept.name);
+                purgeStudentRecordsByIds(removedIds);
                 state.settings.structure.splice(idx, 1);
                 state.selDeptIdx = 0;
                 state.selStageIdx = 0;
             } else if (kind === "s" && getCurrentDept().stages.length > 1) {
+                const deptName = getCurrentDept().name;
+                const stage = getCurrentDept().stages[idx];
+                const removedIds = state.students.filter(s => s.dept === deptName && s.stage === stage.name).map(s => s.id);
+                state.students = state.students.filter(s => !(s.dept === deptName && s.stage === stage.name));
+                purgeStudentRecordsByIds(removedIds);
                 getCurrentDept().stages.splice(idx, 1);
                 state.selStageIdx = 0;
             } else if (kind === "b" && getCurrentStage().subjects.length > 1) {
@@ -5186,6 +5480,7 @@
             }
         }
         function downloadFullBackupJson() {
+            saveDatabase();
             const dataStr = localStorage.getItem(STORAGE_KEY) || JSON.stringify(state);
             const blob = new Blob([dataStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
@@ -5194,7 +5489,7 @@
             a.download = `نسخة_احتياطية_بوصلة_الأستاذ_${getTodayStr()}.json`;
             a.click();
             URL.revokeObjectURL(url);
-            showToast("💾 تم تنزيل النسخة الاحتياطية بنجاح");
+            showToast("💾 تم تنزيل النسخة الاحتياطية المتوافقة مع الأندرويد والآيفون بنجاح");
         }
         function triggerRestoreBackupFile() {
             document.getElementById("restore-file-input")?.click();
@@ -5208,6 +5503,7 @@
             if (deleteAllStudents) {
                 state.students = [];
                 state.studentTags = {};
+                state.studentDatedNotes = {};
             }
             state.grades = {};
             state.attendance = {};
@@ -5218,7 +5514,7 @@
             showToast("✅ تم حفظ نسخة احتياطية وتصفير السجلات للعام الجديد");
         }
 
-        // Subscription Modal
+        // Subscription Modal (Mathematical Device-Bound Verification Matching Android WaadCalculator)
         function openSubscriptionModal() {
             state.activeModal = { type: "subscription" };
             renderApp();
@@ -5229,15 +5525,19 @@
                 showToast("⚠️ يرجى إدخال كود التفعيل");
                 return;
             }
+            if (!verifyActivationKey(state.deviceId, code)) {
+                showToast("❌ كود التفعيل غير صحيح لهذا الجهاز! تأكد من إرسال رقم جهازك للمطور");
+                return;
+            }
             state.isSubscribed = true;
-            state.subscriptionPlan = code.includes("FREE") ? "مجاني" : (code.includes("MONTH") ? "شهري" : "سنوي");
+            state.subscriptionPlan = "سنوي";
             saveDatabase();
             closeModal();
-            showToast("🎉 تم تفعيل النسخة الكاملة بنجاح!");
+            showToast("🎉 تم التحقق من الكود وتفعيل النسخة الكاملة بنجاح!");
         }
         function requestActivationViaWhatsApp() {
-            const msg = `مرحباً أستاذ وعد، أرغب بالحصول على كود تفعيل تطبيق (بوصلة الأستاذ v${APP_VERSION_NAME}) لنسخة الآيفون.\nالمدرس: ${state.settings.teacherName}\nالمدرسة: ${state.settings.schoolName}`;
-            window.open(`https://wa.me/9647824982909?text=${encodeURIComponent(msg)}`, "_blank");
+            const msg = `مرحباً أستاذ وعد، أرغب بالحصول على كود تفعيل تطبيق (بوصلة الأستاذ v${APP_VERSION_NAME}) لنسخة الآيفون.\n📱 رقم معرف الجهاز (Device ID): ${state.deviceId}\n👨‍🏫 المدرس: ${state.settings.teacherName}\n🏫 المدرسة: ${state.settings.schoolName}`;
+            window.open(`https://wa.me/9647727486682?text=${encodeURIComponent(msg)}`, "_blank");
         }
 
         // Smart Import (PDF / Text / Image)
@@ -5299,10 +5599,61 @@
                 e.target.value = "";
             });
 
+            // Ensure 100% Offline Support on iOS Safari & Home Screen Standalone PWA
+            forceRefreshOfflineCache(false);
+
             if ("serviceWorker" in navigator) {
-                navigator.serviceWorker.register("sw.js").catch(() => {});
+                navigator.serviceWorker.register("./sw.js", { scope: "./" }).then((reg) => {
+                    if (reg.active) {
+                        reg.active.postMessage({ type: "WARMUP_OFFLINE_CACHE" });
+                    }
+                    reg.addEventListener("updatefound", () => {
+                        const newWorker = reg.installing;
+                        if (newWorker) {
+                            newWorker.addEventListener("statechange", () => {
+                                if (newWorker.state === "activated") {
+                                    forceRefreshOfflineCache(false);
+                                }
+                            });
+                        }
+                    });
+                }).catch(() => {});
+            }
+
+            if (navigator.storage && navigator.storage.persist) {
+                navigator.storage.persist().catch(() => {});
             }
         });
+
+        async function forceRefreshOfflineCache(showNotification = false) {
+            if (!("caches" in window)) return;
+            try {
+                const cache = await caches.open("bousalat-alustadh-v4.4-offline-v3");
+                // 1. Self-cache current running document under all possible entry URLs so offline launch never misses
+                const fullHtml = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+                const htmlHeaders = { "Content-Type": "text/html; charset=utf-8" };
+                await cache.put(window.location.href, new Response(fullHtml, { status: 200, headers: htmlHeaders }));
+                await cache.put("./", new Response(fullHtml, { status: 200, headers: htmlHeaders }));
+                await cache.put("./index.html", new Response(fullHtml, { status: 200, headers: htmlHeaders }));
+                await cache.put("./bousalat_alustadh_iphone.html", new Response(fullHtml, { status: 200, headers: htmlHeaders }));
+
+                // 2. Cache icons and manifest if online
+                if (navigator.onLine !== false) {
+                    const assets = ["./manifest.json", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png"];
+                    for (const asset of assets) {
+                        try {
+                            const res = await fetch(asset, { cache: "no-cache" });
+                            if (res && res.ok) await cache.put(asset, res.clone());
+                        } catch (_) {}
+                    }
+                }
+                if (showNotification) {
+                    showToast("✅ تم تثبيت وتأمين النسخة للعمل بدون إنترنت 100%");
+                }
+            } catch (e) {
+                console.warn("Offline self-cache warning:", e);
+            }
+        }
     </script>
 </body>
 </html>

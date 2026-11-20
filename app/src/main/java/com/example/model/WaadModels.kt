@@ -354,19 +354,32 @@ object WaadCalculator {
         val failThreshold = if (maxAllowedGrade == 10) 5 else 50
         val grades = g ?: SubjectGrades()
 
-        val hasM1 = grades.v1.isNotBlank() || grades.v2.isNotBlank() || grades.v3.isNotBlank()
-        val hasM2 = grades.v4.isNotBlank() || grades.v5.isNotBlank() || grades.v6.isNotBlank()
+        val isElementaryTen = maxAllowedGrade == 10
+        val hasM1 = if (isElementaryTen) grades.v1.isNotBlank() else (grades.v1.isNotBlank() || grades.v2.isNotBlank() || grades.v3.isNotBlank())
+        val hasM2 = if (isElementaryTen) grades.v4.isNotBlank() else (grades.v4.isNotBlank() || grades.v5.isNotBlank() || grades.v6.isNotBlank())
         val hasMid = grades.mid.isNotBlank()
-        val hasM3 = grades.v7.isNotBlank() || grades.v8.isNotBlank() || grades.v9.isNotBlank()
-        val hasM4 = grades.v10.isNotBlank() || grades.v11.isNotBlank() || grades.v12.isNotBlank()
+        val hasM3 = if (isElementaryTen) grades.v7.isNotBlank() else (grades.v7.isNotBlank() || grades.v8.isNotBlank() || grades.v9.isNotBlank())
+        val hasM4 = if (isElementaryTen) grades.v10.isNotBlank() else (grades.v10.isNotBlank() || grades.v11.isNotBlank() || grades.v12.isNotBlank())
         val hasFinal = grades.finalExam.isNotBlank()
         val hasSecondRound = grades.secondRound.isNotBlank()
 
-        val m1 = if (hasM1) (grades.v1.toIntOrNull() ?: 0) + (grades.v2.toIntOrNull() ?: 0) + (grades.v3.toIntOrNull() ?: 0) else 0
-        val m2 = if (hasM2) (grades.v4.toIntOrNull() ?: 0) + (grades.v5.toIntOrNull() ?: 0) + (grades.v6.toIntOrNull() ?: 0) else 0
+        val m1 = if (hasM1) {
+            if (isElementaryTen) (grades.v1.toIntOrNull() ?: 0)
+            else (grades.v1.toIntOrNull() ?: 0) + (grades.v2.toIntOrNull() ?: 0) + (grades.v3.toIntOrNull() ?: 0)
+        } else 0
+        val m2 = if (hasM2) {
+            if (isElementaryTen) (grades.v4.toIntOrNull() ?: 0)
+            else (grades.v4.toIntOrNull() ?: 0) + (grades.v5.toIntOrNull() ?: 0) + (grades.v6.toIntOrNull() ?: 0)
+        } else 0
         val mid = if (hasMid) (grades.mid.toIntOrNull() ?: 0) else 0
-        val m3 = if (hasM3) (grades.v7.toIntOrNull() ?: 0) + (grades.v8.toIntOrNull() ?: 0) + (grades.v9.toIntOrNull() ?: 0) else 0
-        val m4 = if (hasM4) (grades.v10.toIntOrNull() ?: 0) + (grades.v11.toIntOrNull() ?: 0) + (grades.v12.toIntOrNull() ?: 0) else 0
+        val m3 = if (hasM3) {
+            if (isElementaryTen) (grades.v7.toIntOrNull() ?: 0)
+            else (grades.v7.toIntOrNull() ?: 0) + (grades.v8.toIntOrNull() ?: 0) + (grades.v9.toIntOrNull() ?: 0)
+        } else 0
+        val m4 = if (hasM4) {
+            if (isElementaryTen) (grades.v10.toIntOrNull() ?: 0)
+            else (grades.v10.toIntOrNull() ?: 0) + (grades.v11.toIntOrNull() ?: 0) + (grades.v12.toIntOrNull() ?: 0)
+        } else 0
         val finalExam = if (hasFinal) (grades.finalExam.toIntOrNull() ?: 0) else 0
         val secondRoundExam = if (hasSecondRound) (grades.secondRound.toIntOrNull() ?: 0) else 0
         val qarar = grades.qarar
@@ -404,11 +417,16 @@ object WaadCalculator {
             finalResult = min(maxAllowedGrade, saei + qarar)
         }
 
-        val isFailedFirstRound = hasFinalResult && finalResult < failThreshold
+        val isFailedFirstRound = (hasFinalResult && finalResult < failThreshold) ||
+            (!hasFinalResult && hasSaei && (saei + qarar) < failThreshold)
         var secondRoundResult: Int? = null
         var hasSecondRoundResult = false
         if (isFailedFirstRound && hasSecondRound) {
-            secondRoundResult = secondRoundExam
+            secondRoundResult = if (hasSaei) {
+                min(maxAllowedGrade, ((saei + secondRoundExam) / 2.0).roundToInt() + qarar)
+            } else {
+                min(maxAllowedGrade, secondRoundExam + qarar)
+            }
             hasSecondRoundResult = true
         }
 
