@@ -1,0 +1,6 @@
+{
+  "name": "بوصلة الأستاذ",
+  "description": "بوصلة الأستاذ العصري لإدارة الحصص وسجلات الدرجات والحضور بذكاء واحترافية",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

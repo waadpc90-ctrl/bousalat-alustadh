@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- All foreground elements strictly within the 66dp safe zone (21..87) -->
+    <group>
+        <!-- 1. Open Academic Gradebook / Ledger Base (السجل الأكاديمي المفتوح) -->
+        <!-- Left Page -->
+        <path
+            android:fillColor="#E0E7FF"
+            android:pathData="M52.5,73.5 C45,70.5 36.5,70.5 29,73.5 L29,81 C36.5,78 45,78 52.5,81 Z" />
+        <!-- Right Page -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M55.5,73.5 C63,70.5 71.5,70.5 79,73.5 L79,81 C71.5,78 63,78 55.5,81 Z" />
+        <!-- Golden Book Spine Accent -->
+        <path
+            android:fillColor="#F59E0B"
+            android:pathData="M52.2,73.5 L55.8,73.5 L55.8,82.2 L52.2,82.2 Z" />
+
+        <!-- 2. Outer Compass Bezel & Dial (إطار وميناء البوصلة الاحترافية) -->
+        <!-- Compass Dark Navy Inner Face -->
+        <path
+            android:fillColor="#1E1B4B"
+            android:pathData="M54,34 A21,21 0 1,1 53.99,34 Z" />
+        <!-- Outer Metallic White/Gold Ring -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="3.2"
+            android:pathData="M54,34 A21,21 0 1,1 53.99,34 Z" />
+        <!-- Inner Precision Golden Ring -->
+        <path
+            android:strokeColor="#66FBBF24"
+            android:strokeWidth="1.2"
+            android:pathData="M54,38.5 A16.5,16.5 0 1,1 53.99,38.5 Z" />
+
+        <!-- Compass Cardinal Tick Marks (N, E, S, W) -->
+        <!-- East Tick -->
+        <path
+            android:strokeColor="#FBBF24"
+            android:strokeWidth="2.2"
+            android:strokeLineCap="round"
+            android:pathData="M71.5,55 L74.8,55" />
+        <!-- West Tick -->
+        <path
+            android:strokeColor="#FBBF24"
+            android:strokeWidth="2.2"
+            android:strokeLineCap="round"
+            android:pathData="M33.2,55 L36.5,55" />
+        <!-- South Tick -->
+        <path
+            android:strokeColor="#FBBF24"
+            android:strokeWidth="2.2"
+            android:strokeLineCap="round"
+            android:pathData="M54,72.5 L54,75.8" />
+        <!-- North Tick -->
+        <path
+            android:strokeColor="#FBBF24"
+            android:strokeWidth="2.2"
+            android:strokeLineCap="round"
+            android:pathData="M54,34.2 L54,37.5" />
+
+        <!-- Subtle Grid / Analytics Bars inside Compass Dial (رصد الدرجات والحضور) -->
+        <path
+            android:fillColor="#40818CF8"
+            android:pathData="M43,58 L46.5,58 L46.5,64 L43,64 Z" />
+        <path
+            android:fillColor="#55818CF8"
+            android:pathData="M48.5,53 L52,53 L52,64 L48.5,64 Z" />
+        <path
+            android:fillColor="#77818CF8"
+            android:pathData="M59.5,49 L63,49 L63,64 L59.5,64 Z" />
+
+        <!-- 3. 3D Faceted Compass Needle (إبرة البوصلة الذهبية والفضية) -->
+        <!-- South-West Tail (Platinum/Silver) -->
+        <path
+            android:fillColor="#CBD5E1"
+            android:pathData="M54,55 L50.2,51.2 L41.5,67.5 Z" />
+        <path
+            android:fillColor="#94A3B8"
+            android:pathData="M54,55 L57.8,58.8 L41.5,67.5 Z" />
+
+        <!-- North-East Pointer (Bright Gold & Rich Amber) -->
+        <path
+            android:fillColor="#FDE047"
+            android:pathData="M54,55 L50.2,51.2 L66.5,42.5 Z" />
+        <path
+            android:fillColor="#F59E0B"
+            android:pathData="M54,55 L57.8,58.8 L66.5,42.5 Z" />
+
+        <!-- Needle Center Pivot Jewel -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,51.2 A3.8,3.8 0 1,1 53.99,51.2 Z" />
+        <path
+            android:fillColor="#D97706"
+            android:pathData="M54,53 A2.0,2.0 0 1,1 53.99,53 Z" />
+
+        <!-- 4. Academic Graduation Mortarboard Cap at Top (قبعة الأستاذ والتفوق) -->
+        <!-- Cap Skullband / Base -->
+        <path
+            android:fillColor="#E0E7FF"
+            android:pathData="M43,30.5 L43,35.2 C43,37.2 48,38.8 54,38.8 C60,38.8 65,37.2 65,35.2 L65,30.5 L54,34.8 Z" />
+        <!-- Cap Diamond Top -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,21.5 L72,28.2 L54,34.8 L36,28.2 Z" />
+        <!-- Cap Center Button -->
+        <path
+            android:fillColor="#FBBF24"
+            android:pathData="M54,26.8 A1.5,1.5 0 1,1 53.99,26.8 Z" />
+        <!-- Golden Tassel (خيط التخرج الذهبي) -->
+        <path
+            android:strokeColor="#FBBF24"
+            android:strokeWidth="1.8"
+            android:strokeLineCap="round"
+            android:pathData="M67.5,29.8 L69.8,36.5" />
+        <path
+            android:fillColor="#F59E0B"
+            android:pathData="M69.8,35.2 A2.1,2.1 0 1,1 69.79,35.2 Z" />
+    </group>
+</vector>

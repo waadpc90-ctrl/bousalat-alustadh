@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>أداة إرسال وبث التحديث التلقائي لجميع المستخدمين — بوصلة الأستاذ</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --card-inner: #0f172a;
+      --border: #334155;
+      --indigo: #6366f1;
+      --indigo-dark: #4338ca;
+      --emerald: #10b981;
+      --emerald-dark: #059669;
+      --amber: #f59e0b;
+      --danger: #ef4444;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 20px 14px 48px;
+      background: radial-gradient(circle at top, #1e1b4b 0%, #0f172a 70%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .hero {
+      background: linear-gradient(135deg, #312e81 0%, #581c87 55%, #1e1b4b 100%);
+      border-radius: 26px;
+      padding: 26px 22px;
+      border: 1.5px solid rgba(99, 102, 241, 0.45);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+      text-align: center;
+      margin-bottom: 18px;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.18);
+      border: 1px solid rgba(16, 185, 129, 0.55);
+      color: #6ee7b7;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 5px 14px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+    .hero h1 {
+      margin: 6px 0 8px;
+      font-size: 23px;
+      font-weight: 900;
+      color: #ffffff;
+    }
+    .hero p {
+      margin: 0;
+      color: #cbd5e1;
+      font-size: 13.5px;
+      line-height: 1.65;
+      font-weight: 600;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 900;
+      color: #fff;
+      margin: 0 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .live-banner {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1.5px solid rgba(16, 185, 129, 0.4);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .live-banner.inactive {
+      background: rgba(148, 163, 184, 0.08);
+      border-color: rgba(148, 163, 184, 0.3);
+    }
+    .live-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #6ee7b7;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .live-desc {
+      font-size: 12.5px;
+      color: #e2e8f0;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 800;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    input[type="text"], input[type="number"], textarea {
+      width: 100%;
+      background: var(--card-inner);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 13.5px;
+      font-weight: 700;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input.ltr {
+      direction: ltr;
+      text-align: left;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--indigo);
+    }
+    textarea {
+      resize: vertical;
+      min-height: 76px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: none;
+      border-radius: 15px;
+      padding: 14px 18px;
+      font-size: 14.5px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.12s, opacity 0.2s;
+      text-decoration: none;
+      width: 100%;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .btn-paste {
+      width: auto;
+      white-space: nowrap;
+      background: var(--indigo);
+      color: #fff;
+      padding: 0 16px;
+      font-size: 13px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      color: #ffffff;
+      font-size: 16px;
+      padding: 16px;
+      box-shadow: 0 8px 22px rgba(16, 185, 129, 0.35);
+      margin-bottom: 10px;
+    }
+    .btn-amber {
+      background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.16);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      padding: 11px 14px;
+      font-size: 13px;
+    }
+    .btn-outline {
+      background: rgba(99, 102, 241, 0.14);
+      color: #c7d2fe;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+    }
+    .status-box {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #6ee7b7;
+      display: none;
+      line-height: 1.6;
+    }
+    .status-box.error {
+      background: rgba(239, 68, 68, 0.14);
+      border-color: rgba(239, 68, 68, 0.45);
+      color: #fca5a5;
+    }
+    .steps {
+      margin: 0;
+      padding-right: 18px;
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.85;
+      font-weight: 600;
+    }
+    .steps li {
+      margin-bottom: 6px;
+    }
+    .highlight {
+      color: #fbbf24;
+      font-weight: 900;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <div class="badge">📡 أداة المطور المستقلة لبث التحديث عن بُعد (OTA Broadcast)</div>
+      <h1>بث التحديث التلقائي لجميع مستخدمي بوصلة الأستاذ 🚀</h1>
+      <p>
+        ارفع ملف <b>bousalat_alustadh.apk</b> على كوكل درايف، والصق رابطه هنا ثم اضغط
+        <b>"إرسال وبث التحديث التلقائي لجميع المستخدمين الآن"</b> — سيصل التحديث فوراً لجميع الأجهزة المثبت عليها التطبيق ويبدأ التنزيل والتثبيت تلقائياً بدون أي تدخل من المستخدمين!
+      </p>
+    </div>
+
+    <!-- حالة البث السحابي الحالية لجميع المستخدمين -->
+    <div class="card">
+      <div class="card-title">
+        <span>📡 حالة البث السحابي الحي لجميع المستخدمين</span>
+        <button type="button" class="btn btn-outline" style="width:auto;padding:6px 12px;font-size:12px;" onclick="checkCurrentBroadcastStatus()">🔄 تحديث الحالة</button>
+      </div>
+      <div id="liveBroadcastBanner" class="live-banner inactive">
+        <div class="live-title" id="liveBroadcastTitle">⏳ جاري فحص قناة البث السحابي...</div>
+        <div class="live-desc" id="liveBroadcastDesc">يرجى الانتظار لحظة للتحقق من آخر نسخة مرسلة لجميع المستخدمين.</div>
+      </div>
+      <button type="button" class="btn btn-danger" onclick="cancelActiveBroadcast()">
+        🛑 إيقاف / إلغاء بث التحديث الحالي لجميع المستخدمين
+      </button>
+    </div>
+
+    <!-- نموذج إرسال التحديث الجديد -->
+    <div class="card">
+      <div class="card-title">🔗 إعداد وإرسال تحديث جديد من كوكل درايف لجميع المستخدمين</div>
+
+      <label for="driveUrl">رابط ملف التطبيق (APK) على كوكل درايف:</label>
+      <div class="input-row">
+        <input
+          type="text"
+          id="driveUrl"
+          class="ltr"
+          placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+          oninput="onUrlChanged()"
+        />
+        <button type="button" class="btn btn-paste" onclick="pasteFromClipboard()">📋 لصق الرابط</button>
+      </div>
+
+      <div id="statusBox" class="status-box"></div>
+
+      <div class="grid-2">
+        <div>
+          <label for="versionName">رقم الإصدار الجديد (Version Name):</label>
+          <input type="text" id="versionName" class="ltr" value="4.4" placeholder="4.4" />
+        </div>
+        <div>
+          <label for="versionCode">كود الإصدار الرقمي (أكبر من 16):</label>
+          <input type="number" id="versionCode" class="ltr" value="17" min="17" />
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label for="releaseNotes">ملاحظات التحديث (تظهر للمستخدم أثناء التنزيل التلقائي):</label>
+        <textarea id="releaseNotes">تحديث تلقائي شامل لتطبيق بوصلة الأستاذ يتضمن أحدث الميزات والتحسينات في سجل الدرجات والحضور والغياب.</textarea>
+      </div>
+
+      <!-- الزر الرئيسي لإرسال التحديث لجميع المستخدمين تلقائياً -->
+      <button type="button" id="broadcastBtn" class="btn btn-primary" onclick="broadcastUpdateToAllUsers()">
+        🚀 إرسال وبث التحديث التلقائي لجميع المستخدمين الآن (بدون تدخلهم)
+      </button>
+
+      <!-- زر إضافي لتجربة التحديث على جهاز المطور الحالي فوراً -->
+      <button type="button" class="btn btn-amber" onclick="triggerLocalDeviceUpdateNow()">
+        📲 تجربة فتح وتحديث التطبيق على هذا الجهاز فوراً
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💡 كيف يعمل التحديث التلقائي لجميع المستخدمين؟</div>
+      <ol class="steps">
+        <li>ارفع ملف <span class="highlight">bousalat_alustadh.apk</span> الجديد إلى حسابك في <b>Google Drive</b>.</li>
+        <li>اضبط صلاحية المشاركة للملف في كوكل درايف على: <span class="highlight">"أي شخص لديه الرابط" (Anyone with the link)</span> ثم انسخ الرابط.</li>
+        <li>افتح هذه الأداة المستقلة (من هاتفك أو حاسوبك)، والصق رابط كوكل درايف في الحقل أعلاه، وحدد رقم الإصدار الجديد (مثلاً <b>4.4</b>).</li>
+        <li>اضغط على زر <span class="highlight">"🚀 إرسال وبث التحديث التلقائي لجميع المستخدمين الآن"</span>.</li>
+        <li>بمجرد الضغط، يتم نشر أمر التحديث عبر قناة البث السحابية المشفرة الخاصة بالتطبيق، وعندما يفتح أي أستاذ تطبيق <b>بوصلة الأستاذ</b> على هاتفه، يستلم التطبيق الإشارة تلقائياً ويبدأ بتنزيل ملف الـ APK من كوكل درايف (<span class="highlight">0% ⬅️ 100%</span>) ويفتح مثبت أندرويد تلقائياً <b>دون أن ينسخ أو يلصق أي رابط ودون أي تدخل منه!</b></li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    const PRIMARY_CHANNEL = 'https://ntfy.sh/bousalat_alustadh_waad_ota_v1';
+    const BACKUP_CHANNEL = 'https://ntfy.sh/bousalat_alustadh_waad_ota_v2';
+
+    const savedUrl = localStorage.getItem('waad_standalone_drive_url') || '';
+    const savedVer = localStorage.getItem('waad_standalone_ver') || '4.4';
+    const savedVerCode = localStorage.getItem('waad_standalone_ver_code') || '17';
+    const savedNotes = localStorage.getItem('waad_standalone_notes') || '';
+
+    if (savedUrl) document.getElementById('driveUrl').value = savedUrl;
+    if (savedVer) document.getElementById('versionName').value = savedVer;
+    if (savedVerCode) document.getElementById('versionCode').value = savedVerCode;
+    if (savedNotes) document.getElementById('releaseNotes').value = savedNotes;
+    if (savedUrl) onUrlChanged();
+
+    function extractDriveFileId(rawUrl) {
+      const clean = (rawUrl || '').trim();
+      if (!clean) return null;
+      const m1 = clean.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})/);
+      if (m1 && m1[1]) return m1[1];
+      const m2 = clean.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+      if (m2 && m2[1]) return m2[1];
+      if (/^[a-zA-Z0-9_-]{25,50}$/.test(clean)) return clean;
+      return null;
+    }
+
+    function toDirectDownloadUrl(rawUrl) {
+      const clean = (rawUrl || '').trim();
+      const fileId = extractDriveFileId(clean);
+      if (fileId) {
+        return `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`;
+      }
+      return clean;
+    }
+
+    function toDriveViewUrl(rawUrl) {
+      const clean = (rawUrl || '').trim();
+      const fileId = extractDriveFileId(clean);
+      if (fileId) {
+        return `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
+      }
+      return clean;
+    }
+
+    function showStatus(msg, isError = false) {
+      const box = document.getElementById('statusBox');
+      box.style.display = 'block';
+      box.className = isError ? 'status-box error' : 'status-box';
+      box.innerHTML = msg;
+    }
+
+    function onUrlChanged() {
+      const raw = document.getElementById('driveUrl').value.trim();
+      const fileId = extractDriveFileId(raw);
+      localStorage.setItem('waad_standalone_drive_url', raw);
+      if (fileId) {
+        showStatus(`✅ تم التعرف على معرف ملف كوكل درايف بنجاح: <b>${fileId}</b><br>جاهز للبث الفوري لجميع أجهزة المستخدمين.`);
+      } else if (raw.length > 0) {
+        showStatus(`ℹ️ تم إدخال الرابط — اضغط على زر البث لإرسال التحديث لجميع المستخدمين.`);
+      } else {
+        document.getElementById('statusBox').style.display = 'none';
+      }
+    }
+
+    async function pasteFromClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim()) {
+          document.getElementById('driveUrl').value = text.trim();
+          onUrlChanged();
+        } else {
+          alert('الحافظة فارغة — انسخ رابط ملف APK من كوكل درايف أولاً.');
+        }
+      } catch (e) {
+        const manual = prompt('الصق رابط كوكل درايف هنا:');
+        if (manual && manual.trim()) {
+          document.getElementById('driveUrl').value = manual.trim();
+          onUrlChanged();
+        }
+      }
+    }
+
+    async function broadcastUpdateToAllUsers() {
+      const raw = document.getElementById('driveUrl').value.trim();
+      const ver = document.getElementById('versionName').value.trim() || '4.4';
+      const verCode = parseInt(document.getElementById('versionCode').value || '17', 10) || 17;
+      const notes = document.getElementById('releaseNotes').value.trim();
+
+      if (!raw) {
+        showStatus('⚠️ يرجى لصق رابط ملف APK من كوكل درايف أولاً قبل البث لجميع المستخدمين!', true);
+        return;
+      }
+
+      localStorage.setItem('waad_standalone_drive_url', raw);
+      localStorage.setItem('waad_standalone_ver', ver);
+      localStorage.setItem('waad_standalone_ver_code', String(verCode));
+      localStorage.setItem('waad_standalone_notes', notes);
+
+      const btn = document.getElementById('broadcastBtn');
+      btn.disabled = true;
+      btn.innerText = '⏳ جاري إرسال وبث التحديث لجميع أجهزة المستخدمين...';
+
+      const broadcastId = 'ota_' + Date.now();
+      const payload = {
+        active: true,
+        broadcastId: broadcastId,
+        appName: 'بوصلة الأستاذ',
+        packageName: 'com.aistudio.alwaadsmart.wbvqkz',
+        versionName: ver.replace(/^v/i, ''),
+        versionCode: verCode,
+        apkDriveUrl: toDriveViewUrl(raw),
+        directDownloadUrl: toDirectDownloadUrl(raw),
+        releaseNotes: notes || 'تحديث تلقائي جديد لتطبيق بوصلة الأستاذ.',
+        autoInstall: true,
+        isMandatory: true,
+        timestamp: Date.now()
+      };
+
+      try {
+        const bodyStr = JSON.stringify(payload);
+        const [res1, res2] = await Promise.allSettled([
+          fetch(PRIMARY_CHANNEL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+            body: bodyStr
+          }),
+          fetch(BACKUP_CHANNEL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+            body: bodyStr
+          })
+        ]);
+
+        const ok1 = res1.status === 'fulfilled' && res1.value.ok;
+        const ok2 = res2.status === 'fulfilled' && res2.value.ok;
+
+        if (ok1 || ok2) {
+          showStatus(
+            `🎉 <b>تم إرسال وبث التحديث التلقائي (الإصدار v${payload.versionName}) إلى جميع المستخدمين بنجاح!</b><br>` +
+            `• رقم معرف البث: <code>${broadcastId}</code><br>` +
+            `• كل مستخدم يفتح تطبيق "بوصلة الأستاذ" الآن سيبدأ جهازه فوراً بتنزيل التحديث من كوكل درايف وتثبيته تلقائياً بدون أي تدخل منه!`
+          );
+          await checkCurrentBroadcastStatus();
+        } else {
+          showStatus('⚠️ تعذر الاتصال بقناة البث السحابية — تأكد من اتصالك بالإنترنت وحاول مرة أخرى.', true);
+        }
+      } catch (err) {
+        showStatus('⚠️ حدث خطأ أثناء الاتصال بالشبكة: ' + err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '🚀 إرسال وبث التحديث التلقائي لجميع المستخدمين الآن (بدون تدخلهم)';
+      }
+    }
+
+    async function cancelActiveBroadcast() {
+      if (!confirm('هل أنت متأكد من إيقاف بث التحديث التلقائي الحالي لجميع المستخدمين؟')) return;
+      const cancelPayload = {
+        active: false,
+        broadcastId: 'ota_cancel_' + Date.now(),
+        versionName: '4.3',
+        versionCode: 16,
+        apkDriveUrl: '',
+        directDownloadUrl: '',
+        autoInstall: false,
+        isMandatory: false,
+        timestamp: Date.now()
+      };
+      try {
+        const bodyStr = JSON.stringify(cancelPayload);
+        await Promise.allSettled([
+          fetch(PRIMARY_CHANNEL, { method: 'POST', body: bodyStr }),
+          fetch(BACKUP_CHANNEL, { method: 'POST', body: bodyStr })
+        ]);
+        showStatus('🛑 تم إيقاف وإلغاء بث التحديث التلقائي لجميع المستخدمين بنجاح.');
+        await checkCurrentBroadcastStatus();
+      } catch (e) {
+        showStatus('⚠️ تعذر إرسال أمر الإيقاف — تحقق من اتصال الإنترنت.', true);
+      }
+    }
+
+    async function checkCurrentBroadcastStatus() {
+      const banner = document.getElementById('liveBroadcastBanner');
+      const titleEl = document.getElementById('liveBroadcastTitle');
+      const descEl = document.getElementById('liveBroadcastDesc');
+
+      try {
+        const resp = await fetch(PRIMARY_CHANNEL + '/json?poll=1&since=all', { cache: 'no-store' });
+        const text = await resp.text();
+        const lines = text.trim().split('\n').filter(Boolean);
+        let latestPayload = null;
+
+        for (let i = lines.length - 1; i >= 0; i--) {
+          try {
+            const env = JSON.parse(lines[i]);
+            if (env.event !== 'message') continue;
+            const msgObj = env.message && env.message.startsWith('{') ? JSON.parse(env.message) : env;
+            if ('active' in msgObj || 'apkDriveUrl' in msgObj) {
+              latestPayload = msgObj;
+              break;
+            }
+          } catch (_) {}
+        }
+
+        if (latestPayload && latestPayload.active && latestPayload.apkDriveUrl) {
+          banner.className = 'live-banner';
+          const dt = latestPayload.timestamp ? new Date(latestPayload.timestamp).toLocaleString('ar-IQ') : 'الآن';
+          titleEl.innerHTML = `🟢 البث التلقائي نشط ومفعل حالياً لجميع المستخدمين (الإصدار v${latestPayload.versionName})`;
+          descEl.innerHTML =
+            `• <b>رابط كوكل درايف الفعال:</b> <span dir="ltr">${latestPayload.apkDriveUrl}</span><br>` +
+            `• <b>وقت الإرسال:</b> ${dt}<br>` +
+            `• <b>الحالة:</b> أي مستخدم يفتح التطبيق يتم تحديث تطبيقه تلقائياً دون تدخل منه.`;
+        } else {
+          banner.className = 'live-banner inactive';
+          titleEl.innerHTML = '⚪ لا يوجد بث تحديث نشط حالياً';
+          descEl.innerHTML = 'الصق رابط ملف APK من كوكل درايف بالأسفل واضغط على زر البث لإرسال التحديث لجميع المستخدمين.';
+        }
+      } catch (e) {
+        banner.className = 'live-banner inactive';
+        titleEl.innerHTML = '⚠️ تعذر التحقق من حالة البث السحابي';
+        descEl.innerHTML = 'تأكد من اتصال الجهاز بالإنترنت.';
+      }
+    }
+
+    function triggerLocalDeviceUpdateNow() {
+      const raw = document.getElementById('driveUrl').value.trim();
+      const ver = document.getElementById('versionName').value.trim() || '4.4';
+      const notes = document.getElementById('releaseNotes').value.trim();
+      if (!raw) {
+        showStatus('⚠️ يرجى لصق رابط ملف APK من كوكل درايف أولاً!', true);
+        return;
+      }
+      const deepLink = `bousalat://update?driveUrl=${encodeURIComponent(raw)}&version=${encodeURIComponent(ver)}&notes=${encodeURIComponent(notes)}&auto=1`;
+      window.location.href = deepLink;
+    }
+
+    // فحص الحالة تلقائياً عند فتح الأداة
+    checkCurrentBroadcastStatus();
+  </script>
+</body>
+</html>

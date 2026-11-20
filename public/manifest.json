@@ -1,0 +1,20 @@
+{
+  "name": "بوصلة الأستاذ 3.1",
+  "short_name": "بوصلة الأستاذ",
+  "description": "السجل الإلكتروني المتكامل للمدرس — درجات، واجبات بيتية، حضور، وتقارير أولياء الأمور",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%231e1b4b'/><circle cx='90' cy='90' r='64' fill='%23312e81' stroke='%236366f1' stroke-width='4'/><polygon points='90,34 106,84 90,74 74,84' fill='%2310b981'/><polygon points='90,146 106,96 90,106 74,96' fill='%23f59e0b'/><circle cx='90' cy='90' r='10' fill='%23ffffff'/></svg>",
+      "sizes": "180x180 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

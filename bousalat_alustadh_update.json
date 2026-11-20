@@ -1,0 +1,11 @@
+{
+  "appName": "بوصلة الأستاذ",
+  "packageName": "com.aistudio.alwaadsmart.wbvqkz",
+  "versionName": "4.3",
+  "versionCode": 16,
+  "apkDriveUrl": "https://drive.google.com/file/d/PUT_YOUR_GOOGLE_DRIVE_FILE_ID_HERE/view?usp=sharing",
+  "directDownloadUrl": "https://drive.google.com/uc?export=download&id=PUT_YOUR_GOOGLE_DRIVE_FILE_ID_HERE",
+  "releaseNotes": "تحديث جديد لتطبيق بوصلة الأستاذ (v4.3): دعم نظام التحديث المباشر من كوكل درايف، ونظام طلاب الانتساب (معفي من الحضور اليومي)، والاستخراج الذكي للأسماء، وتطوير سجل الحضور والطباعة الرسمية.",
+  "showPromptOnStartup": true,
+  "isMandatory": false
+}
